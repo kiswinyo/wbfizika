@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="hu" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FizikaLab - Interaktív Fizikai Szimulációk</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            900: '#134e4a',
+                        },
+                        physics: {
+                            cyan: '#06b6d4',
+                            indigo: '#6366f1',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom scrollbars and styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(51, 65, 85, 0.8);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(6, 182, 212, 0.6);
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .light-mode-demo .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            color: #0f172a;
+        }
+
+        .atom-spinner {
+            animation: spin 12s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Pulse glow animation for physics visualizer */
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.35);
+        }
+        .glow-indigo {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased transition-colors duration-300 selection:bg-cyan-500 selection:text-slate-950" id="appBody">
+
+    <!-- NAVIGATION HEADER -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3 transition-colors">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Logo & Title -->
+            <div class="flex items-center justify-between w-full md:w-auto">
+                <a href="#" class="flex items-center gap-3 group">
+                    <div class="relative w-10 h-10 flex items-center justify-center bg-gradient-to-tr from-cyan-500 to-indigo-600 rounded-xl shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-atom text-xl text-white atom-spinner"></i>
+                    </div>
+                    <div>
+                        <span class="text-2xl font-bold tracking-tight bg-gradient-to-r from-cyan-400 via-teal-300 to-indigo-400 bg-clip-text text-transparent">FizikaLab</span>
+                        <span class="block text-[10px] uppercase font-semibold text-cyan-400/80 tracking-widest -mt-1">Interaktív Szimulációk</span>
+                    </div>
+                </a>
+
+                <!-- Mobile Teacher Toggle -->
+                <button id="mobileDemoToggleBtn" onclick="toggleDemoMode()" class="md:hidden px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 hover:text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-chalkboard-user text-cyan-400"></i>
+                    <span>Demó</span>
+                </button>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="relative w-full md:w-96">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" id="searchInput" placeholder="Keresés szimulációk, témák között..." 
+                       class="w-full bg-slate-900/90 border border-slate-700/80 focus:border-cyan-500 text-slate-200 text-sm rounded-xl pl-10 pr-4 py-2 outline-none transition-all focus:ring-2 focus:ring-cyan-500/20 placeholder-slate-500">
+                <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 text-xs">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Desktop Tools & Controls -->
+            <div class="hidden md:flex items-center gap-3">
+                <button onclick="toggleDemoMode()" id="demoModeBtn" class="px-3.5 py-2 rounded-xl bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-2 transition-all hover:border-cyan-500/50">
+                    <i class="fa-solid fa-chalkboard-user text-cyan-400"></i>
+                    <span id="demoBtnText">Demonstrációs mód</span>
+                </button>
+                <div class="h-6 w-px bg-slate-800"></div>
+                <span class="text-xs text-slate-400 font-mono"><i class="fa-solid fa-graduation-cap text-indigo-400 mr-1"></i> PhET kompatibilis</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-10">
+
+        <!-- HERO SECTION WITH LIVE MINI SIMULATION -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-gradient-to-br from-slate-900/90 via-slate-900 to-slate-950 p-6 lg:p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Left Text Content -->
+            <div class="lg:col-span-6 space-y-6 z-10">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                    Valós ideű fizikai motor
+                </div>
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                    Fedezd fel a fizika világát <span class="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">interaktív szimulációkkal!</span>
+                </h1>
+                <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                    Kísérletezz biztonságosan és vizuálisan! A FizikaLab segítségével a mechanika, hőtan, optika és elektromosság elveit próbálhatod ki élő paraméterek módosításával.
+                </p>
+
+                <!-- Quick Stats / Badges -->
+                <div class="grid grid-cols-3 gap-3 pt-2">
+                    <div class="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-center">
+                        <div class="text-xl font-bold text-cyan-400 font-mono">100%</div>
+                        <div class="text-[11px] text-slate-400 uppercase tracking-wider mt-0.5">Ingyenes</div>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-center">
+                        <div class="text-xl font-bold text-indigo-400 font-mono">HTML5</div>
+                        <div class="text-[11px] text-slate-400 uppercase tracking-wider mt-0.5">Telepítés nélkül</div>
+                    </div>
+                    <div class="p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-center">
+                        <div class="text-xl font-bold text-emerald-400 font-mono">Magyar</div>
+                        <div class="text-[11px] text-slate-400 uppercase tracking-wider mt-0.5">Tananyagok</div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-4 pt-2">
+                    <a href="#catalog" class="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-semibold shadow-lg shadow-cyan-500/25 hover:opacity-90 hover:scale-[1.02] transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-play"></i>
+                        <span>Szimulációk böngészése</span>
+                    </a>
+                    <button onclick="openModal('pendulum')" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-vial text-cyan-400"></i>
+                        <span>Gyors próba (Inga)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Dynamic Interactive Widget (Hero Spring-Mass Oscillator Canvas) -->
+            <div class="lg:col-span-6 z-10 bg-slate-950/80 rounded-2xl border border-slate-800 p-4 shadow-inner flex flex-col gap-3">
+                <div class="flex items-center justify-between text-xs font-mono text-slate-400 border-b border-slate-800 pb-2">
+                    <span class="flex items-center gap-2 text-cyan-400 font-semibold">
+                        <i class="fa-solid fa-wave-square"></i> Élő demó: Rugós rezgőrendszer
+                    </span>
+                    <span>Húzd meg a tömeget egérrel!</span>
+                </div>
+
+                <!-- Hero Canvas -->
+                <div class="relative w-full h-56 bg-slate-900/90 rounded-xl overflow-hidden border border-slate-800/80 cursor-grab active:cursor-grabbing">
+                    <canvas id="heroCanvas" class="w-full h-full block"></canvas>
+                    <div class="absolute bottom-2 left-2 px-2.5 py-1 rounded-lg bg-slate-950/80 text-[11px] font-mono text-slate-300 border border-slate-800 flex items-center gap-3">
+                        <span>f: <strong id="heroFreqText" class="text-cyan-400">1.25</strong> Hz</span>
+                        <span>x: <strong id="heroDispText" class="text-indigo-400">0.00</strong> m</span>
+                    </div>
+                </div>
+
+                <!-- Hero Controls -->
+                <div class="grid grid-cols-3 gap-3 text-xs">
+                    <div>
+                        <label class="block text-slate-400 mb-1">Rugóállandó ($k$)</label>
+                        <input type="range" id="heroK" min="10" max="100" value="40" class="w-full accent-cyan-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Tömeg ($m$)</label>
+                        <input type="range" id="heroM" min="0.5" max="5" step="0.1" value="2.0" class="w-full accent-indigo-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Csillapítás ($b$)</label>
+                        <input type="range" id="heroB" min="0" max="0.5" step="0.01" value="0.05" class="w-full accent-emerald-500 bg-slate-800 rounded">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CATEGORIES & GRADE FILTERS BAR -->
+        <section id="catalog" class="space-y-6">
+            
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-shapes text-cyan-400"></i> Szimuláció Katalógus
+                    </h2>
+                    <p class="text-slate-400 text-sm mt-1">Szűrj témakörök és iskolai évfolyamok szerint</p>
+                </div>
+
+                <!-- Grade Level Filter Badges -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0 font-medium text-xs">
+                    <span class="text-slate-500 mr-1 text-[11px] uppercase tracking-wider font-semibold">Szint:</span>
+                    <button onclick="setGradeFilter('all')" class="grade-filter-btn active px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:border-cyan-500 transition-all">
+                        Összes
+                    </button>
+                    <button onclick="setGradeFilter('altalanos')" class="grade-filter-btn px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:border-slate-700 transition-all">
+                        Általános iskola
+                    </button>
+                    <button onclick="setGradeFilter('kozep')" class="grade-filter-btn px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:border-slate-700 transition-all">
+                        Középiskola
+                    </button>
+                    <button onclick="setGradeFilter('emelt')" class="grade-filter-btn px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900/60 text-slate-400 hover:text-slate-200 hover:border-slate-700 transition-all">
+                        Emelt / Egyetem
+                    </button>
+                </div>
+            </div>
+
+            <!-- Subject Categories Tabs -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-2">
+                <button onclick="setCategoryFilter('all')" class="cat-filter-btn active px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-semibold text-xs tracking-wide shadow-md shadow-cyan-500/20 whitespace-nowrap transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group"></i> Összes témakör
+                </button>
+                <button onclick="setCategoryFilter('mechanika')" class="cat-filter-btn px-4 py-2 rounded-xl bg-slate-900 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 font-medium text-xs whitespace-nowrap transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-gears text-cyan-400"></i> Mechanika
+                </button>
+                <button onclick="setCategoryFilter('hotan')" class="cat-filter-btn px-4 py-2 rounded-xl bg-slate-900 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 font-medium text-xs whitespace-nowrap transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-fire text-amber-400"></i> Hőtan
+                </button>
+                <button onclick="setCategoryFilter('elektromos')" class="cat-filter-btn px-4 py-2 rounded-xl bg-slate-900 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 font-medium text-xs whitespace-nowrap transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-indigo-400"></i> Elektromosság
+                </button>
+                <button onclick="setCategoryFilter('optika')" class="cat-filter-btn px-4 py-2 rounded-xl bg-slate-900 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 font-medium text-xs whitespace-nowrap transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-eye text-emerald-400"></i> Optika & Hullámok
+                </button>
+                <button onclick="setCategoryFilter('modern')" class="cat-filter-btn px-4 py-2 rounded-xl bg-slate-900 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 font-medium text-xs whitespace-nowrap transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-atom text-rose-400"></i> Modern fizika
+                </button>
+            </div>
+
+            <!-- SIMULATIONS GRID VIEW -->
+            <div id="simulationsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cards will be populated dynamically via JavaScript -->
+            </div>
+
+            <!-- Empty Search State -->
+            <div id="emptySearchState" class="hidden text-center py-16 space-y-3 bg-slate-900/40 rounded-3xl border border-slate-800">
+                <i class="fa-solid fa-magnifying-glass text-4xl text-slate-600"></i>
+                <h3 class="text-lg font-semibold text-slate-300">Nincs találat a megadott feltételek alapján</h3>
+                <p class="text-sm text-slate-500">Próbáld meg megváltoztatni a keresőszót vagy a kategória szűrőket.</p>
+                <button onclick="resetFilters()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold rounded-xl border border-slate-700 transition-all">
+                    Szűrők alaphelyzetbe állítása
+                </button>
+            </div>
+
+        </section>
+
+        <!-- TEACHER & CLASSROOM TOOLS BAR -->
+        <section class="bg-gradient-to-r from-indigo-950/60 via-slate-900 to-slate-900 p-6 lg:p-8 rounded-3xl border border-indigo-900/40 space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <span class="px-2.5 py-1 rounded-md bg-indigo-500/20 text-indigo-300 text-[11px] font-mono font-semibold uppercase tracking-wider">Tanári Eszköztár</span>
+                    <h3 class="text-xl font-bold text-white mt-2">Oktatói és demonstrációs támogatás</h3>
+                    <p class="text-slate-400 text-sm mt-1">Tervezd meg az órádat interaktív feladatokkal és projektoros nézettel.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="toggleGridOverlay()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-border-all text-cyan-400"></i>
+                        <span id="gridToggleText">Négyzetháló Be</span>
+                    </button>
+                    <button onclick="toggleRulerOverlay()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-2 transition-all">
+                        <i class="fa-solid fa-ruler-combined text-indigo-400"></i>
+                        <span id="rulerToggleText">Mérővonalzó Be</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <i class="fa-solid fa-display text-cyan-400 text-lg"></i>
+                    <h4 class="font-semibold text-sm text-slate-200">Projektor barát felület</h4>
+                    <p class="text-xs text-slate-400">Magas kontrasztú demonstrációs mód okostáblákhoz és kivetítőkhöz.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <i class="fa-solid fa-file-pdf text-rose-400 text-lg"></i>
+                    <h4 class="font-semibold text-sm text-slate-200">Munkalapok & Feladatsorok</h4>
+                    <p class="text-xs text-slate-400">Letölthető diákfeladatok mérési jegyzőkönyv sablonokkal.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2">
+                    <i class="fa-solid fa-sliders text-emerald-400 text-lg"></i>
+                    <h4 class="font-semibold text-sm text-slate-200">Paraméterek mentése</h4>
+                    <p class="text-xs text-slate-400">Mentsd el az órai beállításokat és nyisd meg később közvetlen linkkel.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-800/80 mt-16 bg-slate-950 py-10 text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold">
+                    <i class="fa-solid fa-atom"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-slate-300">FizikaLab &copy; 2026</span>
+                    <p class="text-[11px] text-slate-500">Interaktív Fizikai Kísérleti Platform Oktatóknak és Diákoknak</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-6 text-slate-400">
+                <a href="#" class="hover:text-cyan-400 transition-colors">Kezdőlap</a>
+                <a href="#catalog" class="hover:text-cyan-400 transition-colors">Katalógus</a>
+                <a href="javascript:alert('FizikaLab v2.5 - Készítette a fizikaoktatás digitális fejlesztéséért. HTML5 Canvas engine.')" class="hover:text-cyan-400 transition-colors">Névjegy</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- INTERACTIVE SIMULATION MODAL VIEWER -->
+    <div id="simModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md hidden flex items-center justify-center p-2 sm:p-4 lg:p-6 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden relative">
+            
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
+                <div class="flex items-center gap-3">
+                    <span id="modalCategoryBadge" class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                        Mechanika
+                    </span>
+                    <h3 id="modalTitle" class="text-lg sm:text-xl font-bold text-white">Szimuláció Címe</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleModalFullscreen()" title="Teljes képernyő" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                    <button onclick="closeModal()" title="Bezárás" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-lg">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body (Canvas & Dynamic Controls Panel) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 flex-1 overflow-y-auto p-4 lg:p-6 gap-6">
+                
+                <!-- Left/Center Canvas Render Area -->
+                <div class="lg:col-span-8 flex flex-col gap-4">
+                    <div class="relative w-full h-[360px] sm:h-[420px] bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-inner flex items-center justify-center">
+                        <!-- Simulation Canvas -->
+                        <canvas id="simCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+                        <!-- Canvas Overlay Utilities (Teacher grid, measurements) -->
+                        <div id="simGridOverlay" class="absolute inset-0 pointer-events-none hidden opacity-25" 
+                             style="background-image: linear-gradient(to right, #06b6d4 1px, transparent 1px), linear-gradient(to bottom, #06b6d4 1px, transparent 1px); background-size: 40px 40px;">
+                        </div>
+
+                        <!-- Top Quick Controls (Pause, Step, Reset, Slow-mo) -->
+                        <div class="absolute top-3 left-3 flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 p-1.5 rounded-xl backdrop-blur-md">
+                            <button id="modalPlayBtn" onclick="toggleSimPlay()" class="p-2 w-9 h-9 rounded-lg bg-cyan-500 text-slate-950 hover:bg-cyan-400 font-bold flex items-center justify-center transition-all">
+                                <i class="fa-solid fa-pause"></i>
+                            </button>
+                            <button onclick="stepSim()" title="Egy időlépés" class="p-2 w-9 h-9 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center transition-all">
+                                <i class="fa-solid fa-step-forward"></i>
+                            </button>
+                            <button onclick="resetSim()" title="Újraindítás" class="p-2 w-9 h-9 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center transition-all">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                            <div class="h-5 w-px bg-slate-800 mx-1"></div>
+                            <select id="modalSpeedSelect" onchange="changeSimSpeed(this.value)" class="bg-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-slate-700 outline-none">
+                                <option value="0.25">0.25x (Lassú)</option>
+                                <option value="0.5">0.5x</option>
+                                <option value="1.0" selected>1.0x (Normál)</option>
+                                <option value="2.0">2.0x (Gyors)</option>
+                            </select>
+                        </div>
+
+                        <!-- Bottom Telemetry Banner -->
+                        <div id="modalTelemetry" class="absolute bottom-3 left-3 right-3 bg-slate-950/80 border border-slate-800/80 rounded-xl p-2.5 text-xs font-mono text-slate-300 flex items-center justify-between overflow-x-auto gap-4 backdrop-blur-md">
+                            <!-- Telemetry metrics rendered dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Extra Live Graph Canvas (Angle/Energy/Trajectory) -->
+                    <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 flex flex-col gap-2">
+                        <div class="flex items-center justify-between text-xs font-mono text-slate-400">
+                            <span class="flex items-center gap-1.5 text-slate-300 font-semibold">
+                                <i class="fa-solid fa-chart-line text-cyan-400"></i> Valós idejű mérések & Grafikon
+                            </span>
+                            <span id="graphLabel">Fizikai adatok időfüggvényben</span>
+                        </div>
+                        <div class="w-full h-24 bg-slate-900/90 rounded-xl overflow-hidden border border-slate-800">
+                            <canvas id="graphCanvas" class="w-full h-full block"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Parameter Control Dock -->
+                <div class="lg:col-span-4 flex flex-col gap-4 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                    <h4 class="text-sm font-bold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-cyan-400"></i> Paraméterek
+                    </h4>
+
+                    <!-- Dynamic Sliders & Switches Container -->
+                    <div id="modalControls" class="space-y-4 flex-1 overflow-y-auto pr-1">
+                        <!-- Populated by JS for current sim -->
+                    </div>
+
+                    <!-- Educational Description Box -->
+                    <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800/80 text-xs space-y-2">
+                        <div class="font-semibold text-cyan-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-lightbulb"></i> Fizikai Háttér
+                        </div>
+                        <p id="modalDescription" class="text-slate-400 leading-relaxed">
+                            A szimuláció leírása itt jelenik meg...
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION CODE -->
+    <script>
+        /* ==========================================================================
+           1. DATA STRUCTURES & CATALOG DATA
+           ========================================================================== */
+        const SIMULATIONS = [
+            {
+                id: 'pendulum',
+                title: 'Matematikai és Fizikai Inga',
+                category: 'mechanika',
+                categoryName: 'Mechanika',
+                grade: 'kozep',
+                gradeName: 'Középiskola',
+                icon: 'fa-vector-square',
+                color: 'cyan',
+                desc: 'Csillapított és csillapítatlan ingamozgás, periódusidő, erővektorok és kinetikus/potenciális energia átalakulások.',
+                featured: true
+            },
+            {
+                id: 'projectile',
+                title: 'Ferde és Vízszintes Hajítás',
+                category: 'mechanika',
+                categoryName: 'Mechanika',
+                grade: 'kozep',
+                gradeName: 'Középiskola',
+                icon: 'fa-circle-dot',
+                color: 'cyan',
+                desc: 'Kezdősebesség, kilövési szög, röppálya nyomvonal, csúcsmagasság és lőtávolság szimulációja gravitációs mezőben.',
+                featured: true
+            },
+            {
+                id: 'gas',
+                title: 'Ideális Gázok Állapotváltozásai',
+                category: 'hotan',
+                categoryName: 'Hőtan',
+                grade: 'kozep',
+                gradeName: 'Középiskola',
+                icon: 'fa-boxes-packing',
+                color: 'amber',
+                desc: 'Molekuláris mozgások, ütközések, nyomás (P), térfogat (V) és hőmérséklet (T) összefüggése gáztartályban.',
+                featured: true
+            },
+            {
+                id: 'ohm',
+                title: 'Ohm-törvény és Áramkörök',
+                category: 'elektromos',
+                categoryName: 'Elektromosság',
+                grade: 'altalanos',
+                gradeName: 'Általános iskola',
+                icon: 'fa-bolt',
+                color: 'indigo',
+                desc: 'Feszültség, ellenállás és áramerősség kapcsolata. Elektronáramlás vizualizációja és teljesítménymérés.',
+                featured: true
+            },
+            {
+                id: 'refraction',
+                title: 'Fénytörés és Snellius-Descartes',
+                category: 'optika',
+                categoryName: 'Optika',
+                grade: 'kozep',
+                gradeName: 'Középiskola',
+                icon: 'fa-barcode',
+                color: 'emerald',
+                desc: 'Fénysugár törése két közeg határán, törésmutatók ($n_1, n_2$), teljes visszaverődés és határszög számítás.',
+                featured: true
+            },
+            {
+                id: 'photoelectric',
+                title: 'Fotoelektromos Effektus',
+                category: 'modern',
+                categoryName: 'Modern fizika',
+                grade: 'emelt',
+                gradeName: 'Emelt / Egyetem',
+                icon: 'fa-atom',
+                color: 'rose',
+                desc: 'Fotonok és elektronok kölcsönhatása fémlemezen. Kilépési munka, fényfrekvencia és elektron energiák.',
+                featured: true
+            }
+        ];
+
+        /* APP STATE */
+        let activeCategory = 'all';
+        let activeGrade = 'all';
+        let searchQuery = '';
+        let isDemoMode = false;
+        let isGridOverlay = false;
+        let isRulerOverlay = false;
+
+        /* SIMULATION ENGINE STATE */
+        let currentModalSim = null;
+        let simAnimFrame = null;
+        let heroAnimFrame = null;
+        let simIsRunning = true;
+        let simTime = 0;
+        let simSpeed = 1.0;
+
+        /* GRAPH DATA BUFFER */
+        let graphHistory = [];
+
+        /* ==========================================================================
+           2. DOM INITIALIZATION & EVENT LISTENERS
+           ========================================================================== */
+        window.addEventListener('DOMContentLoaded', () => {
+            renderCatalog();
+            initHeroSim();
+            setupSearchListener();
+
+            window.addEventListener('resize', () => {
+                resizeHeroCanvas();
+                resizeModalCanvas();
+            });
+        });
+
+        function setupSearchListener() {
+            const searchInput = document.getElementById('searchInput');
+            const clearBtn = document.getElementById('clearSearchBtn');
+
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase().trim();
+                clearBtn.classList.toggle('hidden', searchQuery === '');
+                renderCatalog();
+            });
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            searchQuery = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderCatalog();
+        }
+
+        function setCategoryFilter(cat) {
+            activeCategory = cat;
+            document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-cyan-500', 'text-slate-950', 'shadow-md', 'shadow-cyan-500/20');
+                btn.classList.add('bg-slate-900', 'text-slate-300', 'border-slate-800');
+            });
+            event.currentTarget.classList.add('active', 'bg-cyan-500', 'text-slate-950', 'shadow-md', 'shadow-cyan-500/20');
+            event.currentTarget.classList.remove('bg-slate-900', 'text-slate-300', 'border-slate-800');
+            renderCatalog();
+        }
+
+        function setGradeFilter(grade) {
+            activeGrade = grade;
+            document.querySelectorAll('.grade-filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-slate-800', 'text-slate-200', 'border-slate-700');
+                btn.classList.add('bg-slate-900/60', 'text-slate-400', 'border-slate-800');
+            });
+            event.currentTarget.classList.add('active', 'bg-slate-800', 'text-slate-200', 'border-slate-700');
+            event.currentTarget.classList.remove('bg-slate-900/60', 'text-slate-400', 'border-slate-800');
+            renderCatalog();
+        }
+
+        function resetFilters() {
+            activeCategory = 'all';
+            activeGrade = 'all';
+            clearSearch();
+            renderCatalog();
+        }
+
+        function toggleDemoMode() {
+            isDemoMode = !isDemoMode;
+            document.getElementById('appBody').classList.toggle('light-mode-demo', isDemoMode);
+            const demoBtnText = document.getElementById('demoBtnText');
+            if (demoBtnText) demoBtnText.textContent = isDemoMode ? 'Sötét mód' : 'Demonstrációs mód';
+        }
+
+        function toggleGridOverlay() {
+            isGridOverlay = !isGridOverlay;
+            document.getElementById('simGridOverlay').classList.toggle('hidden', !isGridOverlay);
+            document.getElementById('gridToggleText').textContent = isGridOverlay ? 'Négyzetháló Ki' : 'Négyzetháló Be';
+        }
+
+        function toggleRulerOverlay() {
+            isRulerOverlay = !isRulerOverlay;
+            document.getElementById('rulerToggleText').textContent = isRulerOverlay ? 'Mérővonalzó Ki' : 'Mérővonalzó Be';
+        }
+
+        /* ==========================================================================
+           3. SIMULATION CATALOG RENDERER
+           ========================================================================== */
+        function renderCatalog() {
+            const grid = document.getElementById('simulationsGrid');
+            const emptyState = document.getElementById('emptySearchState');
+            grid.innerHTML = '';
+
+            const filtered = SIMULATIONS.filter(sim => {
+                const matchesCat = (activeCategory === 'all' || sim.category === activeCategory);
+                const matchesGrade = (activeGrade === 'all' || sim.grade === activeGrade);
+                const matchesSearch = sim.title.toLowerCase().includes(searchQuery) || 
+                                      sim.desc.toLowerCase().includes(searchQuery) ||
+                                      sim.categoryName.toLowerCase().includes(searchQuery);
+                return matchesCat && matchesGrade && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            filtered.forEach(sim => {
+                const card = document.createElement('div');
+                card.className = "group bg-slate-900/90 rounded-2xl border border-slate-800 hover:border-cyan-500/50 p-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-500/10";
+                
+                card.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-cyan-400 border border-slate-700">
+                                ${sim.categoryName}
+                            </span>
+                            <span class="text-xs text-slate-400 font-mono flex items-center gap-1">
+                                <i class="fa-solid fa-graduation-cap text-indigo-400"></i> ${sim.gradeName}
+                            </span>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg group-hover:scale-110 transition-transform">
+                                <i class="fa-solid ${sim.icon}"></i>
+                            </div>
+                            <h3 class="font-bold text-slate-100 text-lg group-hover:text-cyan-400 transition-colors leading-snug">
+                                ${sim.title}
+                            </h3>
+                        </div>
+
+                        <p class="text-slate-400 text-xs leading-relaxed">
+                            ${sim.desc}
+                        </p>
+                    </div>
+
+                    <div class="pt-5 mt-4 border-t border-slate-800/80 flex items-center justify-between">
+                        <span class="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
+                            <i class="fa-solid fa-check-circle"></i> Interaktív Canvas
+                        </span>
+                        <button onclick="openModal('${sim.id}')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-slate-200 text-xs font-semibold border border-slate-700 hover:border-cyan-400 transition-all flex items-center gap-1.5 shadow-sm">
+                            <span>Indítás</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        /* ==========================================================================
+           4. HERO CANVAS SIMULATION (Damped Spring Mass Oscillator)
+           ========================================================================== */
+        let heroState = {
+            x: 0.15, // Displacement from equilibrium (meters)
+            v: 0.0,  // Velocity
+            k: 40,   // Spring constant
+            m: 2.0,  // Mass
+            b: 0.05, // Damping
+            isDragging: false
+        };
+
+        function initHeroSim() {
+            const canvas = document.getElementById('heroCanvas');
+            if (!canvas) return;
+            resizeHeroCanvas();
+
+            // Hero Input Bindings
+            document.getElementById('heroK').addEventListener('input', (e) => heroState.k = parseFloat(e.target.value));
+            document.getElementById('heroM').addEventListener('input', (e) => heroState.m = parseFloat(e.target.value));
+            document.getElementById('heroB').addEventListener('input', (e) => heroState.b = parseFloat(e.target.value));
+
+            // Drag mass functionality
+            canvas.addEventListener('mousedown', startHeroDrag);
+            window.addEventListener('mousemove', doHeroDrag);
+            window.addEventListener('mouseup', endHeroDrag);
+
+            canvas.addEventListener('touchstart', (e) => startHeroDrag(e.touches[0]));
+            window.addEventListener('touchmove', (e) => { if(heroState.isDragging) doHeroDrag(e.touches[0]); });
+            window.addEventListener('touchend', endHeroDrag);
+
+            if (heroAnimFrame) cancelAnimationFrame(heroAnimFrame);
+            runHeroLoop();
+        }
+
+        function resizeHeroCanvas() {
+            const canvas = document.getElementById('heroCanvas');
+            if (!canvas) return;
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+
+        function startHeroDrag(e) {
+            const canvas = document.getElementById('heroCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const centerX = canvas.width / 2;
+
+            if (Math.abs(clickX - (centerX + heroState.x * 300)) < 40) {
+                heroState.isDragging = true;
+            }
+        }
+
+        function doHeroDrag(e) {
+            if (!heroState.isDragging) return;
+            const canvas = document.getElementById('heroCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const centerX = canvas.width / 2;
+            heroState.x = (mouseX - centerX) / 300;
+            heroState.v = 0; // Freeze velocity while dragging
+        }
+
+        function endHeroDrag() {
+            heroState.isDragging = false;
+        }
+
+        function runHeroLoop() {
+            const canvas = document.getElementById('heroCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const dt = 0.016; // Time step
+
+            // Physics integration (Euler-Cromer)
+            if (!heroState.isDragging) {
+                const fSpring = -heroState.k * heroState.x;
+                const fDamp = -heroState.b * heroState.v;
+                const accel = (fSpring + fDamp) / heroState.m;
+                heroState.v += accel * dt;
+                heroState.x += heroState.v * dt;
+            }
+
+            // Update Text Readouts
+            const freq = (1 / (2 * Math.PI) * Math.sqrt(heroState.k / heroState.m)).toFixed(2);
+            document.getElementById('heroFreqText').textContent = freq;
+            document.getElementById('heroDispText').textContent = heroState.x.toFixed(2);
+
+            // Render Frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const centerY = canvas.height / 2;
+            const centerX = canvas.width / 2;
+            const massX = centerX + heroState.x * 300;
+
+            // Draw Wall / Anchor on the left
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(20, centerY - 40, 12, 80);
+
+            // Draw Center Equilibrium Line
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(centerX, 20);
+            ctx.lineTo(centerX, canvas.height - 20);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw Spring (zigzag path)
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(32, centerY);
+            const coils = 16;
+            const springWidth = massX - 32 - 25;
+            for (let i = 0; i <= coils; i++) {
+                const currX = 32 + (springWidth / coils) * i;
+                const currY = centerY + (i % 2 === 0 ? -12 : 12);
+                ctx.lineTo(currX, currY);
+            }
+            ctx.lineTo(massX - 25, centerY);
+            ctx.stroke();
+
+            // Draw Mass Block
+            ctx.fillStyle = heroState.isDragging ? '#6366f1' : '#0ea5e9';
+            ctx.beginPath();
+            ctx.roundRect(massX - 25, centerY - 25, 50, 50, 10);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Mass Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 12px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${heroState.m}kg`, massX, centerY + 4);
+
+            heroAnimFrame = requestAnimationFrame(runHeroLoop);
+        }
+
+        /* ==========================================================================
+           5. FULL MODAL SIMULATION SYSTEM
+           ========================================================================== */
+        function openModal(simId) {
+            const sim = SIMULATIONS.find(s => s.id === simId);
+            if (!sim) return;
+
+            currentModalSim = simId;
+            simTime = 0;
+            simIsRunning = true;
+            graphHistory = [];
+
+            // Update UI elements
+            document.getElementById('modalTitle').textContent = sim.title;
+            document.getElementById('modalCategoryBadge').textContent = sim.categoryName;
+            document.getElementById('modalDescription').textContent = sim.desc;
+            document.getElementById('modalPlayBtn').innerHTML = '<i class="fa-solid fa-pause"></i>';
+
+            // Build parameter controls
+            setupModalControls(simId);
+
+            // Show modal
+            const modal = document.getElementById('simModal');
+            modal.classList.remove('hidden');
+
+            setTimeout(() => {
+                resizeModalCanvas();
+                startModalSimLoop();
+            }, 50);
+        }
+
+        function closeModal() {
+            document.getElementById('simModal').classList.add('hidden');
+            if (simAnimFrame) cancelAnimationFrame(simAnimFrame);
+        }
+
+        function toggleSimPlay() {
+            simIsRunning = !simIsRunning;
+            document.getElementById('modalPlayBtn').innerHTML = simIsRunning ? 
+                '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
+        }
+
+        function stepSim() {
+            simIsRunning = false;
+            document.getElementById('modalPlayBtn').innerHTML = '<i class="fa-solid fa-play"></i>';
+            renderModalSimStep(0.016 * simSpeed);
+        }
+
+        function resetSim() {
+            simTime = 0;
+            graphHistory = [];
+            setupModalControls(currentModalSim);
+        }
+
+        function changeSimSpeed(val) {
+            simSpeed = parseFloat(val);
+        }
+
+        function resizeModalCanvas() {
+            const canvas = document.getElementById('simCanvas');
+            const graphCanvas = document.getElementById('graphCanvas');
+            if (!canvas) return;
+
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+
+            if (graphCanvas) {
+                graphCanvas.width = graphCanvas.parentElement.clientWidth;
+                graphCanvas.height = graphCanvas.parentElement.clientHeight;
+            }
+        }
+
+        /* Setup Dynamic Sliders per Simulation */
+        let simParams = {};
+
+        function setupModalControls(simId) {
+            const container = document.getElementById('modalControls');
+            container.innerHTML = '';
+
+            if (simId === 'pendulum') {
+                simParams = { L: 2.0, g: 9.81, theta0: 30, damp: 0.02, showVectors: true, theta: 30 * Math.PI / 180, omega: 0, trace: [] };
+                container.innerHTML = `
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Inga hossza ($L$)</span>
+                            <span class="font-mono text-cyan-400" id="valL">2.0 m</span>
+                        </div>
+                        <input type="range" min="0.5" max="5.0" step="0.1" value="2.0" oninput="simParams.L=parseFloat(this.value); document.getElementById('valL').textContent=this.value+' m'" class="w-full accent-cyan-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Nehézségi gyorsulás ($g$)</span>
+                            <span class="font-mono text-indigo-400" id="valG">9.81 m/s²</span>
+                        </div>
+                        <input type="range" min="1.6" max="25.0" step="0.1" value="9.81" oninput="simParams.g=parseFloat(this.value); document.getElementById('valG').textContent=this.value+' m/s²'" class="w-full accent-indigo-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Kezdőszög ($\theta_0$)</span>
+                            <span class="font-mono text-emerald-400" id="valTheta">30°</span>
+                        </div>
+                        <input type="range" min="-80" max="80" step="1" value="30" oninput="simParams.theta0=parseFloat(this.value); simParams.theta=this.value*Math.PI/180; simParams.omega=0; simParams.trace=[]; document.getElementById('valTheta').textContent=this.value+'°'" class="w-full accent-emerald-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Léggátlás / Csillapítás</span>
+                            <span class="font-mono text-amber-400" id="valDamp">0.02</span>
+                        </div>
+                        <input type="range" min="0" max="0.2" step="0.005" value="0.02" oninput="simParams.damp=parseFloat(this.value); document.getElementById('valDamp').textContent=this.value" class="w-full accent-amber-500 bg-slate-800 rounded">
+                    </div>
+                `;
+            } else if (simId === 'projectile') {
+                simParams = { v0: 25, angle: 45, h0: 0, g: 9.81, path: [], t: 0 };
+                container.innerHTML = `
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Kezdősebesség ($v_0$)</span>
+                            <span class="font-mono text-cyan-400" id="valV0">25 m/s</span>
+                        </div>
+                        <input type="range" min="5" max="60" step="1" value="25" oninput="simParams.v0=parseFloat(this.value); resetSim(); document.getElementById('valV0').textContent=this.value+' m/s'" class="w-full accent-cyan-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Kilövési szög ($\alpha$)</span>
+                            <span class="font-mono text-indigo-400" id="valAngle">45°</span>
+                        </div>
+                        <input type="range" min="0" max="85" step="1" value="45" oninput="simParams.angle=parseFloat(this.value); resetSim(); document.getElementById('valAngle').textContent=this.value+'°'" class="w-full accent-indigo-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Kezdőmagasság ($h_0$)</span>
+                            <span class="font-mono text-emerald-400" id="valH0">0 m</span>
+                        </div>
+                        <input type="range" min="0" max="30" step="1" value="0" oninput="simParams.h0=parseFloat(this.value); resetSim(); document.getElementById('valH0').textContent=this.value+' m'" class="w-full accent-emerald-500 bg-slate-800 rounded">
+                    </div>
+                `;
+            } else if (simId === 'gas') {
+                simParams = { T: 300, V: 1.0, N: 50, particles: [] };
+                // Initialize gas particles
+                for (let i = 0; i < simParams.N; i++) {
+                    simParams.particles.push({
+                        x: Math.random() * 0.8,
+                        y: Math.random() * 0.8,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: (Math.random() - 0.5) * 2
+                    });
+                }
+                container.innerHTML = `
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Hőmérséklet ($T$)</span>
+                            <span class="font-mono text-amber-400" id="valTemp">300 K</span>
+                        </div>
+                        <input type="range" min="100" max="600" step="10" value="300" oninput="simParams.T=parseFloat(this.value); document.getElementById('valTemp').textContent=this.value+' K'" class="w-full accent-amber-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Térfogat ($V$) (Dugattyú)</span>
+                            <span class="font-mono text-cyan-400" id="valVol">1.0 m³</span>
+                        </div>
+                        <input type="range" min="0.4" max="1.0" step="0.05" value="1.0" oninput="simParams.V=parseFloat(this.value); document.getElementById('valVol').textContent=this.value+' m³'" class="w-full accent-cyan-500 bg-slate-800 rounded">
+                    </div>
+                `;
+            } else if (simId === 'ohm') {
+                simParams = { U: 12, R: 10 };
+                container.innerHTML = `
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Feszültség ($U$)</span>
+                            <span class="font-mono text-indigo-400" id="valU">12 V</span>
+                        </div>
+                        <input type="range" min="1" max="24" step="0.5" value="12" oninput="simParams.U=parseFloat(this.value); document.getElementById('valU').textContent=this.value+' V'" class="w-full accent-indigo-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Ellenállás ($R$)</span>
+                            <span class="font-mono text-amber-400" id="valR">10 Ω</span>
+                        </div>
+                        <input type="range" min="1" max="50" step="1" value="10" oninput="simParams.R=parseFloat(this.value); document.getElementById('valR').textContent=this.value+' Ω'" class="w-full accent-amber-500 bg-slate-800 rounded">
+                    </div>
+                `;
+            } else if (simId === 'refraction') {
+                simParams = { n1: 1.0, n2: 1.5, angle: 45 };
+                container.innerHTML = `
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>1. Közeg törésmutatója ($n_1$)</span>
+                            <span class="font-mono text-cyan-400" id="valN1">1.00 (Levegő)</span>
+                        </div>
+                        <input type="range" min="1.0" max="2.0" step="0.05" value="1.0" oninput="simParams.n1=parseFloat(this.value); document.getElementById('valN1').textContent=this.value" class="w-full accent-cyan-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>2. Közeg törésmutatója ($n_2$)</span>
+                            <span class="font-mono text-emerald-400" id="valN2">1.50 (Üveg)</span>
+                        </div>
+                        <input type="range" min="1.0" max="2.5" step="0.05" value="1.5" oninput="simParams.n2=parseFloat(this.value); document.getElementById('valN2').textContent=this.value" class="w-full accent-emerald-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Beérkezési szög ($\alpha$)</span>
+                            <span class="font-mono text-indigo-400" id="valAlpha">45°</span>
+                        </div>
+                        <input type="range" min="0" max="85" step="1" value="45" oninput="simParams.angle=parseFloat(this.value); document.getElementById('valAlpha').textContent=this.value+'°'" class="w-full accent-indigo-500 bg-slate-800 rounded">
+                    </div>
+                `;
+            } else if (simId === 'photoelectric') {
+                simParams = { lambda: 350, workFunc: 2.3 }; // UV/Violet light, Sodium
+                container.innerHTML = `
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Hullámhossz ($\lambda$)</span>
+                            <span class="font-mono text-cyan-400" id="valWavelength">350 nm</span>
+                        </div>
+                        <input type="range" min="200" max="700" step="5" value="350" oninput="simParams.lambda=parseFloat(this.value); document.getElementById('valWavelength').textContent=this.value+' nm'" class="w-full accent-cyan-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Kilépési munka ($W_0$)</span>
+                            <span class="font-mono text-rose-400" id="valWork">2.3 eV (Nátrium)</span>
+                        </div>
+                        <input type="range" min="1.5" max="5.5" step="0.1" value="2.3" oninput="simParams.workFunc=parseFloat(this.value); document.getElementById('valWork').textContent=this.value+' eV'" class="w-full accent-rose-500 bg-slate-800 rounded">
+                    </div>
+                `;
+            }
+        }
+
+        /* Simulation Render Loop */
+        function startModalSimLoop() {
+            if (simAnimFrame) cancelAnimationFrame(simAnimFrame);
+
+            function loop() {
+                if (simIsRunning) {
+                    renderModalSimStep(0.016 * simSpeed);
+                }
+                simAnimFrame = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        function renderModalSimStep(dt) {
+            const canvas = document.getElementById('simCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const graphCanvas = document.getElementById('graphCanvas');
+            const gCtx = graphCanvas ? graphCanvas.getContext('2d') : null;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            simTime += dt;
+
+            const telemetry = document.getElementById('modalTelemetry');
+
+            /* PENDULUM ENGINE */
+            if (currentModalSim === 'pendulum') {
+                // Euler-Cromer Integration
+                const alpha = (-simParams.g / simParams.L) * Math.sin(simParams.theta) - simParams.damp * simParams.omega;
+                simParams.omega += alpha * dt;
+                simParams.theta += simParams.omega * dt;
+
+                const period = (2 * Math.PI * Math.sqrt(simParams.L / simParams.g)).toFixed(2);
+                const currentAngleDeg = (simParams.theta * 180 / Math.PI).toFixed(1);
+
+                telemetry.innerHTML = `
+                    <span>Idő: <strong class="text-cyan-400">${simTime.toFixed(2)}s</strong></span>
+                    <span>Szög (\(\theta\)): <strong class="text-indigo-400">${currentAngleDeg}°</strong></span>
+                    <span>T-Periódusidő: <strong class="text-emerald-400">${period}s</strong></span>
+                    <span>Szögsebesség (\(\omega\)): <strong class="text-amber-400">${simParams.omega.toFixed(2)} rad/s</strong></span>
+                `;
+
+                // Draw Pendulum Anchor & Cord
+                const pivotX = canvas.width / 2;
+                const pivotY = 60;
+                const pixelLen = simParams.L * 70;
+                const bobX = pivotX + pixelLen * Math.sin(simParams.theta);
+                const bobY = pivotY + pixelLen * Math.cos(simParams.theta);
+
+                // Add to trail
+                simParams.trace.push({ x: bobX, y: bobY });
+                if (simParams.trace.length > 100) simParams.trace.shift();
+
+                // Draw Trace Trail
+                ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                simParams.trace.forEach((pt, i) => {
+                    if (i === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                });
+                ctx.stroke();
+
+                // Draw String
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(pivotX, pivotY);
+                ctx.lineTo(bobX, bobY);
+                ctx.stroke();
+
+                // Draw Pivot
+                ctx.fillStyle = '#f8fafc';
+                ctx.beginPath();
+                ctx.arc(pivotX, pivotY, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw Bob
+                ctx.fillStyle = '#06b6d4';
+                ctx.beginPath();
+                ctx.arc(bobX, bobY, 18, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Record history for graph
+                graphHistory.push(parseFloat(currentAngleDeg));
+                if (graphHistory.length > 150) graphHistory.shift();
+
+                drawLiveGraph(gCtx, graphCanvas, 'Szög (fok)', -60, 60, '#06b6d4');
+            }
+
+            /* PROJECTILE ENGINE */
+            else if (currentModalSim === 'projectile') {
+                const rad = simParams.angle * Math.PI / 180;
+                const vx = simParams.v0 * Math.cos(rad);
+                const vy0 = simParams.v0 * Math.sin(rad);
+
+                simParams.t += dt;
+                const x = vx * simParams.t;
+                const y = simParams.h0 + vy0 * simParams.t - 0.5 * simParams.g * simParams.t * simParams.t;
+
+                const totalFlightTime = (vy0 + Math.sqrt(vy0 * vy0 + 2 * simParams.g * simParams.h0)) / simParams.g;
+                const maxRange = vx * totalFlightTime;
+                const maxHeight = simParams.h0 + (vy0 * vy0) / (2 * simParams.g);
+
+                if (y >= 0) {
+                    simParams.path.push({ x, y });
+                }
+
+                telemetry.innerHTML = `
+                    <span>Max Lőtáv: <strong class="text-cyan-400">${maxRange.toFixed(1)} m</strong></span>
+                    <span>Max Magasság: <strong class="text-indigo-400">${maxHeight.toFixed(1)} m</strong></span>
+                    <span>Repülési idő: <strong class="text-emerald-400">${totalFlightTime.toFixed(2)} s</strong></span>
+                `;
+
+                // Draw Trajectory
+                const originX = 60;
+                const originY = canvas.height - 50;
+                const scale = 5; // pixels per meter
+
+                // Ground Line
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(20, originY);
+                ctx.lineTo(canvas.width - 20, originY);
+                ctx.stroke();
+
+                // Trajectory trail
+                ctx.strokeStyle = '#6366f1';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                simParams.path.forEach((pt, i) => {
+                    const px = originX + pt.x * scale;
+                    const py = originY - pt.y * scale;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+                ctx.stroke();
+
+                // Current projectile position
+                if (y >= 0) {
+                    const currPx = originX + x * scale;
+                    const currPy = originY - y * scale;
+
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(currPx, currPy, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                graphHistory.push(Math.max(0, y));
+                if (graphHistory.length > 150) graphHistory.shift();
+                drawLiveGraph(gCtx, graphCanvas, 'Magasság (m)', 0, maxHeight * 1.2, '#f59e0b');
+            }
+
+            /* IDEAL GAS ENGINE */
+            else if (currentModalSim === 'gas') {
+                const speedMult = Math.sqrt(simParams.T / 300);
+                const wallX = canvas.width * simParams.V;
+
+                ctx.strokeStyle = '#64748b';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(40, 40, wallX - 40, canvas.height - 80);
+
+                // Move and collide particles
+                simParams.particles.forEach(p => {
+                    p.x += p.vx * speedMult;
+                    p.y += p.vy * speedMult;
+
+                    if (p.x < 45 || p.x > wallX - 10) p.vx *= -1;
+                    if (p.y < 45 || p.y > canvas.height - 85) p.vy *= -1;
+
+                    ctx.fillStyle = '#10b981';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                const pressure = ((simParams.N * simParams.T) / (simParams.V * 100)).toFixed(1);
+                telemetry.innerHTML = `
+                    <span>Nyomás ($P$): <strong class="text-amber-400">${pressure} kPa</strong></span>
+                    <span>Hőmérséklet ($T$): <strong class="text-cyan-400">${simParams.T} K</strong></span>
+                    <span>Részecskék ($N$): <strong class="text-indigo-400">${simParams.N}</strong></span>
+                `;
+
+                graphHistory.push(parseFloat(pressure));
+                if (graphHistory.length > 150) graphHistory.shift();
+                drawLiveGraph(gCtx, graphCanvas, 'Nyomás (kPa)', 0, 1000, '#10b981');
+            }
+
+            /* OHM'S LAW ENGINE */
+            else if (currentModalSim === 'ohm') {
+                const I = (simParams.U / simParams.R).toFixed(2);
+                const P = (simParams.U * I).toFixed(1);
+
+                telemetry.innerHTML = `
+                    <span>Áramerősség ($I = U/R$): <strong class="text-indigo-400">${I} A</strong></span>
+                    <span>Teljesítmény ($P$): <strong class="text-amber-400">${P} W</strong></span>
+                `;
+
+                // Draw Simple Circuit Box
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 4;
+                ctx.strokeRect(cx - 150, cy - 80, 300, 160);
+
+                // Battery Symbol
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(cx - 160, cy - 20, 20, 40);
+                ctx.fillStyle = '#6366f1';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText(`+ ${simParams.U}V -`, cx - 180, cy + 35);
+
+                // Resistor Zigzag
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(cx + 140, cy - 30, 20, 60);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillText(`${simParams.R} Ω`, cx + 105, cy + 50);
+
+                // Electrons moving dots
+                const speed = I * 2;
+                const offset = (simTime * speed * 50) % 300;
+
+                ctx.fillStyle = '#facc15';
+                for (let x = 0; x < 300; x += 40) {
+                    const posX = (x + offset) % 300;
+                    ctx.beginPath();
+                    ctx.arc(cx - 150 + posX, cy - 80, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                graphHistory.push(parseFloat(I));
+                if (graphHistory.length > 150) graphHistory.shift();
+                drawLiveGraph(gCtx, graphCanvas, 'Áramerősség (A)', 0, 10, '#6366f1');
+            }
+
+            /* SNELL'S LAW REFRACTION ENGINE */
+            else if (currentModalSim === 'refraction') {
+                const alphaRad = simParams.angle * Math.PI / 180;
+                const sinBeta = (simParams.n1 / simParams.n2) * Math.sin(alphaRad);
+                let betaDeg = 0;
+                let isTotalReflection = false;
+
+                if (sinBeta > 1.0) {
+                    isTotalReflection = true;
+                } else {
+                    betaDeg = (Math.asin(sinBeta) * 180 / Math.PI).toFixed(1);
+                }
+
+                telemetry.innerHTML = `
+                    <span>Beérkezési szög ($\alpha$): <strong class="text-cyan-400">${simParams.angle}°</strong></span>
+                    <span>Törési szög ($\beta$): <strong class="text-emerald-400">${isTotalReflection ? 'Teljes visszaverődés!' : betaDeg + '°'}</strong></span>
+                `;
+
+                const midY = canvas.height / 2;
+                const midX = canvas.width / 2;
+
+                // Medium 1 (Top)
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, midY);
+
+                // Medium 2 (Bottom)
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+                ctx.fillRect(0, midY, canvas.width, midY);
+
+                // Boundary Line
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, midY);
+                ctx.lineTo(canvas.width, midY);
+                ctx.stroke();
+
+                // Normal axis
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(midX, 20);
+                ctx.lineTo(midX, canvas.height - 20);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Incident Ray
+                const rayLen = 180;
+                const incX = midX - rayLen * Math.sin(alphaRad);
+                const incY = midY - rayLen * Math.cos(alphaRad);
+
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(incX, incY);
+                ctx.lineTo(midX, midY);
+                ctx.stroke();
+
+                // Refracted Ray
+                if (!isTotalReflection) {
+                    const refrX = midX + rayLen * Math.sin(betaDeg * Math.PI / 180);
+                    const refrY = midY + rayLen * Math.cos(betaDeg * Math.PI / 180);
+
+                    ctx.strokeStyle = '#10b981';
+                    ctx.beginPath();
+                    ctx.moveTo(midX, midY);
+                    ctx.lineTo(refrX, refrY);
+                    ctx.stroke();
+                } else {
+                    // Reflected ray
+                    const reflX = midX + rayLen * Math.sin(alphaRad);
+                    const reflY = midY - rayLen * Math.cos(alphaRad);
+
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.moveTo(midX, midY);
+                    ctx.lineTo(reflX, reflY);
+                    ctx.stroke();
+                }
+            }
+
+            /* PHOTOELECTRIC EFFECT ENGINE */
+            else if (currentModalSim === 'photoelectric') {
+                const photonEnergy = (1240 / simParams.lambda).toFixed(2); // eV
+                const eKinetic = (photonEnergy - simParams.workFunc).toFixed(2); // eV
+                const isEmitted = eKinetic > 0;
+
+                telemetry.innerHTML = `
+                    <span>Foton energia ($E=h\\nu$): <strong class="text-cyan-400">${photonEnergy} eV</strong></span>
+                    <span>Kilépési munka ($W_0$): <strong class="text-rose-400">${simParams.workFunc} eV</strong></span>
+                    <span>Elektron E_kin: <strong class="text-emerald-400">${isEmitted ? eKinetic + ' eV' : '0 eV (Nincs kilépés)'}</strong></span>
+                `;
+
+                // Draw Metal Plate
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(80, 80, 30, canvas.height - 160);
+
+                // Incoming Light Photons
+                ctx.strokeStyle = '#38bdf8';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 5; i++) {
+                    const y = 100 + i * 50;
+                    ctx.beginPath();
+                    ctx.moveTo(10, y - 20);
+                    ctx.lineTo(80, y);
+                    ctx.stroke();
+                }
+
+                // Emitted electrons
+                if (isEmitted) {
+                    ctx.fillStyle = '#34d399';
+                    const speed = Math.sqrt(eKinetic) * 30;
+                    const offset = (simTime * speed) % (canvas.width - 150);
+
+                    for (let i = 0; i < 5; i++) {
+                        const y = 100 + i * 50;
+                        ctx.beginPath();
+                        ctx.arc(110 + offset, y, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        /* Helper: Draw live telemetry chart */
+        function drawLiveGraph(ctx, canvas, title, minVal, maxVal, color) {
+            if (!ctx || !canvas) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Chart Background Grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.stroke();
+
+            if (graphHistory.length < 2) return;
+
+            // Draw line
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            const dx = canvas.width / 150;
+            graphHistory.forEach((val, i) => {
+                const normY = (val - minVal) / (maxVal - minVal);
+                const py = canvas.height - Math.max(0, Math.min(canvas.height, normY * canvas.height));
+                const px = i * dx;
+
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            });
+            ctx.stroke();
+        }
+
+        function toggleModalFullscreen() {
+            const modal = document.getElementById('simModal');
+            if (!document.fullscreenElement) {
+                modal.requestFullscreen().catch(err => alert(`Hiba: ${err.message}`));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+    </script>
+</body>
+</html>
