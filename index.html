@@ -143,7 +143,7 @@
             <div class="lg:col-span-6 space-y-6 z-10">
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold uppercase tracking-wider">
                     <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                    Valós ideű fizikai motor
+                    Valós idejű fizikai motor
                 </div>
                 <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
                     Fedezd fel a fizika világát <span class="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">interaktív szimulációkkal!</span>
@@ -514,6 +514,18 @@
                 featured: true
             },
             {
+                id: 'fresnel',
+                title: 'Fénytörés és Fresnel-reflexió',
+                category: 'optika',
+                categoryName: 'Optika',
+                grade: 'emelt',
+                gradeName: 'Emelt / Egyetem',
+                icon: 'fa-wave-square',
+                color: 'emerald',
+                desc: 'Snellius-Descartes törvény kiegészítve a Fresnel-egyenletekkel: visszavert (R) és áteresztett (T) intenzitás, polarizáció (s/p) és Brewster-szög.',
+                featured: true
+            },
+            {
                 id: 'photoelectric',
                 title: 'Fotoelektromos Effektus',
                 category: 'modern',
@@ -848,6 +860,9 @@
             document.getElementById('modalCategoryBadge').textContent = sim.categoryName;
             document.getElementById('modalDescription').textContent = sim.desc;
             document.getElementById('modalPlayBtn').innerHTML = '<i class="fa-solid fa-pause"></i>';
+            document.getElementById('graphLabel').textContent = simId === 'fresnel'
+                ? 'Fresnel reflexiós tényező R(α) a beesési szög függvényében (0° – 90°)'
+                : 'Fizikai adatok időfüggvényben';
 
             // Build parameter controls
             setupModalControls(simId);
@@ -1037,6 +1052,50 @@
                         <input type="range" min="0" max="85" step="1" value="45" oninput="simParams.angle=parseFloat(this.value); document.getElementById('valAlpha').textContent=this.value+'°'" class="w-full accent-indigo-500 bg-slate-800 rounded">
                     </div>
                 `;
+            } else if (simId === 'fresnel') {
+                simParams = { n1: 1.0, n2: 1.5, angle: 45, pol: 'unpol' };
+                container.innerHTML = `
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>1. Közeg törésmutatója (n₁)</span>
+                            <span class="font-mono text-cyan-400" id="valFresnelN1">1.00 (Levegő)</span>
+                        </div>
+                        <input type="range" id="sliderFresnelN1" min="1.0" max="2.5" step="0.01" value="1.0" oninput="simParams.n1=parseFloat(this.value); document.getElementById('valFresnelN1').textContent=formatRefractiveLabel(simParams.n1)" class="w-full accent-cyan-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>2. Közeg törésmutatója (n₂)</span>
+                            <span class="font-mono text-emerald-400" id="valFresnelN2">1.50 (Üveg)</span>
+                        </div>
+                        <input type="range" id="sliderFresnelN2" min="1.0" max="2.5" step="0.01" value="1.5" oninput="simParams.n2=parseFloat(this.value); document.getElementById('valFresnelN2').textContent=formatRefractiveLabel(simParams.n2)" class="w-full accent-emerald-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Beérkezési szög (α)</span>
+                            <span class="font-mono text-indigo-400" id="valFresnelAlpha">45°</span>
+                        </div>
+                        <input type="range" id="sliderFresnelAlpha" min="0" max="89" step="1" value="45" oninput="simParams.angle=parseFloat(this.value); document.getElementById('valFresnelAlpha').textContent=this.value+'°'" class="w-full accent-indigo-500 bg-slate-800 rounded">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1.5">Polarizáció típusa</label>
+                        <select id="selectFresnelPol" onchange="simParams.pol=this.value" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-cyan-500">
+                            <option value="unpol" selected>Természetes (polarizálatlan): R = (Rₛ + Rₚ)/2</option>
+                            <option value="p">p-polarizált (beesési síkkal párhuzamos): Rₚ</option>
+                            <option value="s">s-polarizált (beesési síkra merőleges): Rₛ</option>
+                        </select>
+                    </div>
+                    <div class="pt-1">
+                        <span class="block text-[11px] text-slate-400 mb-1.5">Gyors beállítások (kísérletek):</span>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="applyFresnelPreset(1.0, 1.5, 56, 'p')" class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] text-cyan-400 font-medium transition-all text-left">
+                                <i class="fa-solid fa-star-half-stroke mr-1"></i> Brewster-szög (56°)
+                            </button>
+                            <button onclick="applyFresnelPreset(1.33, 1.0, 49, 'unpol')" class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] text-amber-400 font-medium transition-all text-left">
+                                <i class="fa-solid fa-water mr-1"></i> Víz → Levegő határ
+                            </button>
+                        </div>
+                    </div>
+                `;
             } else if (simId === 'photoelectric') {
                 simParams = { lambda: 350, workFunc: 2.3 }; // UV/Violet light, Sodium
                 container.innerHTML = `
@@ -1056,6 +1115,76 @@
                     </div>
                 `;
             }
+        }
+
+        function formatRefractiveLabel(n) {
+            const val = n.toFixed(2);
+            if (Math.abs(n - 1.0) < 0.015) return `${val} (Levegő)`;
+            if (Math.abs(n - 1.33) < 0.02) return `${val} (Víz)`;
+            if (Math.abs(n - 1.50) < 0.02) return `${val} (Üveg)`;
+            if (Math.abs(n - 2.42) < 0.03) return `${val} (Gyémánt)`;
+            return val;
+        }
+
+        function applyFresnelPreset(n1, n2, angle, pol) {
+            simParams.n1 = n1;
+            simParams.n2 = n2;
+            simParams.angle = angle;
+            simParams.pol = pol;
+
+            const sN1 = document.getElementById('sliderFresnelN1');
+            const sN2 = document.getElementById('sliderFresnelN2');
+            const sAlpha = document.getElementById('sliderFresnelAlpha');
+            const selPol = document.getElementById('selectFresnelPol');
+
+            if (sN1) { sN1.value = n1; document.getElementById('valFresnelN1').textContent = formatRefractiveLabel(n1); }
+            if (sN2) { sN2.value = n2; document.getElementById('valFresnelN2').textContent = formatRefractiveLabel(n2); }
+            if (sAlpha) { sAlpha.value = angle; document.getElementById('valFresnelAlpha').textContent = angle + '°'; }
+            if (selPol) { selPol.value = pol; }
+        }
+
+        function computeFresnelMetrics(n1, n2, alphaDeg) {
+            const alphaRad = alphaDeg * Math.PI / 180;
+            const sinAlpha = Math.sin(alphaRad);
+            const cosAlpha = Math.cos(alphaRad);
+            const sinBeta = (n1 / n2) * sinAlpha;
+
+            const brewsterDeg = Math.atan(n2 / n1) * 180 / Math.PI;
+            const criticalDeg = n1 > n2 ? (Math.asin(n2 / n1) * 180 / Math.PI) : null;
+
+            if (sinBeta >= 1.0) {
+                return {
+                    isTIR: true,
+                    betaDeg: null,
+                    betaRad: null,
+                    Rs: 1.0,
+                    Rp: 1.0,
+                    Runpol: 1.0,
+                    brewsterDeg,
+                    criticalDeg
+                };
+            }
+
+            const betaRad = Math.asin(sinBeta);
+            const cosBeta = Math.cos(betaRad);
+
+            const rs = (n1 * cosAlpha - n2 * cosBeta) / (n1 * cosAlpha + n2 * cosBeta);
+            const rp = (n2 * cosAlpha - n1 * cosBeta) / (n2 * cosAlpha + n1 * cosBeta);
+
+            const Rs = Math.min(1, Math.max(0, rs * rs));
+            const Rp = Math.min(1, Math.max(0, rp * rp));
+            const Runpol = 0.5 * (Rs + Rp);
+
+            return {
+                isTIR: false,
+                betaDeg: betaRad * 180 / Math.PI,
+                betaRad,
+                Rs,
+                Rp,
+                Runpol,
+                brewsterDeg,
+                criticalDeg
+            };
         }
 
         /* Simulation Render Loop */
@@ -1379,6 +1508,218 @@
                 }
             }
 
+            /* FRESNEL REFLECTION & REFRACTION ENGINE */
+            else if (currentModalSim === 'fresnel') {
+                const alphaDeg = simParams.angle;
+                const alphaRad = alphaDeg * Math.PI / 180;
+                const metrics = computeFresnelMetrics(simParams.n1, simParams.n2, alphaDeg);
+
+                let R = metrics.Runpol;
+                if (simParams.pol === 's') R = metrics.Rs;
+                else if (simParams.pol === 'p') R = metrics.Rp;
+                const T = 1.0 - R;
+
+                const rPct = (R * 100).toFixed(1);
+                const tPct = (T * 100).toFixed(1);
+                const betaText = metrics.isTIR ? 'Teljes visszaverődés!' : metrics.betaDeg.toFixed(1) + '°';
+                const critText = metrics.criticalDeg !== null ? ` | Határszög: ${metrics.criticalDeg.toFixed(1)}°` : '';
+
+                telemetry.innerHTML = `
+                    <span>α: <strong class="text-cyan-400">${alphaDeg}°</strong> | β: <strong class="text-emerald-400">${betaText}</strong></span>
+                    <span>Reflexió (R): <strong class="text-amber-400">${rPct}%</strong></span>
+                    <span>Áteresztés (T): <strong class="text-emerald-400">${tPct}%</strong></span>
+                    <span>Brewster (θ_B): <strong class="text-indigo-400">${metrics.brewsterDeg.toFixed(1)}°${critText}</strong></span>
+                `;
+
+                const midY = canvas.height / 2;
+                const midX = canvas.width / 2;
+
+                // Medium 1 (Top)
+                const alpha1 = Math.min(0.35, (simParams.n1 - 1.0) * 0.18);
+                ctx.fillStyle = `rgba(6, 182, 212, ${0.06 + alpha1})`;
+                ctx.fillRect(0, 0, canvas.width, midY);
+
+                // Medium 2 (Bottom)
+                const alpha2 = Math.min(0.45, (simParams.n2 - 1.0) * 0.22);
+                ctx.fillStyle = `rgba(16, 185, 129, ${0.10 + alpha2})`;
+                ctx.fillRect(0, midY, canvas.width, midY);
+
+                // Medium labels
+                ctx.font = '12px JetBrains Mono';
+                ctx.fillStyle = '#94a3b8';
+                ctx.textAlign = 'left';
+                ctx.fillText(`1. közeg: n₁ = ${simParams.n1.toFixed(2)}`, 16, midY - 12);
+                ctx.fillText(`2. közeg: n₂ = ${simParams.n2.toFixed(2)}`, 16, midY + 22);
+
+                // Boundary Line
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, midY);
+                ctx.lineTo(canvas.width, midY);
+                ctx.stroke();
+
+                // Normal axis
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(midX, 20);
+                ctx.lineTo(midX, canvas.height - 20);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                const rayLen = Math.min(canvas.width * 0.36, canvas.height * 0.42);
+                const pulseOffset = (simTime * 80) % 36;
+
+                // Helper to draw directional ray with wave pulses and arrow
+                function drawOpticalRay(x1, y1, x2, y2, color, intensity, label, labelOffsetX, labelOffsetY) {
+                    if (intensity <= 0.002) return;
+                    const visAlpha = Math.max(0.16, Math.min(1.0, 0.15 + 0.85 * Math.sqrt(intensity)));
+                    const lineW = 1.5 + 3.5 * intensity;
+
+                    ctx.save();
+                    ctx.globalAlpha = visAlpha;
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = lineW;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+
+                    // Animated photons / wavefront dots along the ray
+                    const dx = x2 - x1;
+                    const dy = y2 - y1;
+                    const len = Math.hypot(dx, dy);
+                    const ux = dx / len;
+                    const uy = dy / len;
+
+                    ctx.fillStyle = color;
+                    for (let d = pulseOffset; d < len - 12; d += 36) {
+                        ctx.beginPath();
+                        ctx.arc(x1 + ux * d, y1 + uy * d, Math.max(2.2, lineW * 0.65), 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // Midpoint arrowhead
+                    const mx = x1 + dx * 0.55;
+                    const my = y1 + dy * 0.55;
+                    const angle = Math.atan2(dy, dx);
+                    const headLen = 9 + lineW;
+                    ctx.beginPath();
+                    ctx.moveTo(mx, my);
+                    ctx.lineTo(mx - headLen * Math.cos(angle - Math.PI / 6), my - headLen * Math.sin(angle - Math.PI / 6));
+                    ctx.lineTo(mx - headLen * Math.cos(angle + Math.PI / 6), my - headLen * Math.sin(angle + Math.PI / 6));
+                    ctx.closePath();
+                    ctx.fill();
+
+                    if (label) {
+                        ctx.globalAlpha = Math.max(0.55, visAlpha);
+                        ctx.font = 'bold 12px JetBrains Mono';
+                        ctx.fillStyle = color;
+                        ctx.fillText(label, mx + labelOffsetX, my + labelOffsetY);
+                    }
+                    ctx.restore();
+                }
+
+                // 1. Incident Ray (100% intensity)
+                const incX = midX - rayLen * Math.sin(alphaRad);
+                const incY = midY - rayLen * Math.cos(alphaRad);
+                drawOpticalRay(incX, incY, midX, midY, '#ef4444', 1.0, 'I₀ = 100%', -78, -8);
+
+                // 2. Reflected Ray (R intensity, always present in Fresnel!)
+                const reflX = midX + rayLen * Math.sin(alphaRad);
+                const reflY = midY - rayLen * Math.cos(alphaRad);
+                drawOpticalRay(midX, midY, reflX, reflY, '#f59e0b', R, `R = ${rPct}%`, 12, -8);
+
+                // 3. Refracted Ray (T = 1 - R intensity, if not TIR)
+                if (!metrics.isTIR && T > 0.002) {
+                    const refrX = midX + rayLen * Math.sin(metrics.betaRad);
+                    const refrY = midY + rayLen * Math.cos(metrics.betaRad);
+                    drawOpticalRay(midX, midY, refrX, refrY, '#10b981', T, `T = ${tPct}%`, 12, 16);
+                }
+
+                // Angle arcs
+                if (alphaDeg > 3) {
+                    ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(midX, midY, 34, -Math.PI / 2 - alphaRad, -Math.PI / 2);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
+                    ctx.beginPath();
+                    ctx.arc(midX, midY, 34, -Math.PI / 2, -Math.PI / 2 + alphaRad);
+                    ctx.stroke();
+                }
+                if (!metrics.isTIR && metrics.betaDeg > 3) {
+                    ctx.strokeStyle = 'rgba(16, 185, 129, 0.6)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(midX, midY, 34, Math.PI / 2 - metrics.betaRad, Math.PI / 2);
+                    ctx.stroke();
+                }
+
+                // Top-right visual Intensity HUD inside Canvas
+                const hudW = 168;
+                const hudH = 66;
+                const hudX = canvas.width - hudW - 14;
+                const hudY = 14;
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+                ctx.strokeStyle = 'rgba(51, 65, 85, 0.9)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(hudX, hudY, hudW, hudH, 10);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.font = 'bold 10px JetBrains Mono';
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillText('INTENZITÁS MEGOSZLÁS', hudX + 10, hudY + 15);
+
+                // R bar
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillText(`R: ${rPct}%`, hudX + 10, hudY + 33);
+                ctx.fillStyle = 'rgba(245, 158, 11, 0.2)';
+                ctx.fillRect(hudX + 72, hudY + 25, 84, 8);
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(hudX + 72, hudY + 25, 84 * R, 8);
+
+                // T bar
+                ctx.fillStyle = '#10b981';
+                ctx.fillText(`T: ${tPct}%`, hudX + 10, hudY + 51);
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+                ctx.fillRect(hudX + 72, hudY + 43, 84, 8);
+                ctx.fillStyle = '#10b981';
+                ctx.fillRect(hudX + 72, hudY + 43, 84 * T, 8);
+
+                // Status badge (Brewster or TIR)
+                if (metrics.isTIR) {
+                    ctx.fillStyle = 'rgba(245, 158, 11, 0.2)';
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.roundRect(hudX, hudY + hudH + 6, hudW, 22, 6);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.font = 'bold 10px JetBrains Mono';
+                    ctx.fillText('TELJES VISSZAVERŐDÉS', hudX + 16, hudY + hudH + 20);
+                } else if (Math.abs(alphaDeg - metrics.brewsterDeg) <= 1.2 && Math.abs(simParams.n1 - simParams.n2) > 0.02) {
+                    ctx.fillStyle = 'rgba(99, 102, 241, 0.25)';
+                    ctx.strokeStyle = '#818cf8';
+                    ctx.beginPath();
+                    ctx.roundRect(hudX, hudY + hudH + 6, hudW, 22, 6);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.fillStyle = '#a5b4fc';
+                    ctx.font = 'bold 10px JetBrains Mono';
+                    ctx.fillText('BREWSTER-SZÖG (Rₚ ≈ 0)', hudX + 14, hudY + hudH + 20);
+                }
+
+                // Draw Fresnel R(alpha) Angular Curve on Bottom Graph Canvas
+                drawFresnelCurveGraph(gCtx, graphCanvas, simParams.n1, simParams.n2, alphaDeg, simParams.pol);
+            }
+
             /* PHOTOELECTRIC EFFECT ENGINE */
             else if (currentModalSim === 'photoelectric') {
                 const photonEnergy = (1240 / simParams.lambda).toFixed(2); // eV
@@ -1386,7 +1727,7 @@
                 const isEmitted = eKinetic > 0;
 
                 telemetry.innerHTML = `
-                    <span>Foton energia ($E=h\\nu$): <strong class="text-cyan-400">${photonEnergy} eV</strong></span>
+                    <span>Foton energia ($E=h\nu$): <strong class="text-cyan-400">${photonEnergy} eV</strong></span>
                     <span>Kilépési munka ($W_0$): <strong class="text-rose-400">${simParams.workFunc} eV</strong></span>
                     <span>Elektron E_kin: <strong class="text-emerald-400">${isEmitted ? eKinetic + ' eV' : '0 eV (Nincs kilépés)'}</strong></span>
                 `;
@@ -1420,6 +1761,98 @@
                     }
                 }
             }
+        }
+
+        /* Helper: Draw Fresnel R(alpha) Angular Curve from 0° to 90° */
+        function drawFresnelCurveGraph(ctx, canvas, n1, n2, currentAlphaDeg, polMode) {
+            if (!ctx || !canvas) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const padL = 34;
+            const padR = 14;
+            const padT = 10;
+            const padB = 18;
+            const plotW = canvas.width - padL - padR;
+            const plotH = canvas.height - padT - padB;
+
+            // Grid lines (0%, 50%, 100%)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 1;
+            [0, 0.5, 1].forEach(lvl => {
+                const y = padT + plotH * (1 - lvl);
+                ctx.beginPath();
+                ctx.moveTo(padL, y);
+                ctx.lineTo(padL + plotW, y);
+                ctx.stroke();
+
+                ctx.fillStyle = '#64748b';
+                ctx.font = '9px JetBrains Mono';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${Math.round(lvl * 100)}%`, padL - 4, y + 3);
+            });
+
+            // Helper to plot a curve
+            function plotCurve(selector, color, dashed, lineWidth) {
+                ctx.save();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
+                if (dashed) ctx.setLineDash([4, 3]);
+                ctx.beginPath();
+                for (let deg = 0; deg <= 90; deg += 1) {
+                    const m = computeFresnelMetrics(n1, n2, deg);
+                    const val = selector(m);
+                    const px = padL + (deg / 90) * plotW;
+                    const py = padT + plotH * (1 - val);
+                    if (deg === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Plot Rs (cyan dashed), Rp (rose dashed), and active curve (amber solid)
+            plotCurve(m => m.Rs, 'rgba(6, 182, 212, 0.55)', true, 1.3);
+            plotCurve(m => m.Rp, 'rgba(244, 63, 94, 0.65)', true, 1.3);
+            plotCurve(m => polMode === 's' ? m.Rs : (polMode === 'p' ? m.Rp : m.Runpol), '#f59e0b', false, 2.2);
+
+            // Current angle marker
+            const currM = computeFresnelMetrics(n1, n2, currentAlphaDeg);
+            const currR = polMode === 's' ? currM.Rs : (polMode === 'p' ? currM.Rp : currM.Runpol);
+            const markerX = padL + (currentAlphaDeg / 90) * plotW;
+            const markerY = padT + plotH * (1 - currR);
+
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+            ctx.beginPath();
+            ctx.moveTo(markerX, padT);
+            ctx.lineTo(markerX, padT + plotH);
+            ctx.stroke();
+
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(markerX, markerY, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            // Legend & X-axis labels
+            ctx.font = '9px JetBrains Mono';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('0°', padL, canvas.height - 4);
+            ctx.textAlign = 'center';
+            ctx.fillText(`θ_B=${currM.brewsterDeg.toFixed(0)}°`, padL + (currM.brewsterDeg / 90) * plotW, canvas.height - 4);
+            ctx.textAlign = 'right';
+            ctx.fillText('90°', padL + plotW, canvas.height - 4);
+
+            // Top-left mini legend
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#06b6d4';
+            ctx.fillText('--- Rₛ', padL + 6, padT + 10);
+            ctx.fillStyle = '#f43f5e';
+            ctx.fillText('--- Rₚ', padL + 48, padT + 10);
+            ctx.fillStyle = '#f59e0b';
+            ctx.fillText('— Aktív R', padL + 90, padT + 10);
         }
 
         /* Helper: Draw live telemetry chart */
