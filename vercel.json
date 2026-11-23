@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    { "source": "/centripetalis", "destination": "/centripetalis/index.html" },
+    { "source": "/centripetalis/", "destination": "/centripetalis/index.html" },
+    { "source": "/autokanyar", "destination": "/autokanyar/index.html" },
+    { "source": "/autokanyar/", "destination": "/autokanyar/index.html" }
+  ]
+}

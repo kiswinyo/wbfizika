@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="hu" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanyarodó Autó és Kisodródás | FizikaLab</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        physics: {
+                            cyan: '#06b6d4',
+                            indigo: '#6366f1',
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(6, 182, 212, 0.6); }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .light-mode-demo {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+        }
+        .light-mode-demo .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            color: #0f172a;
+        }
+        .light-mode-demo .bg-slate-900,
+        .light-mode-demo .bg-slate-950 {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            color: #1e293b !important;
+        }
+        .light-mode-demo .text-white,
+        .light-mode-demo .text-slate-100,
+        .light-mode-demo .text-slate-200 {
+            color: #0f172a !important;
+        }
+        .light-mode-demo .text-slate-300,
+        .light-mode-demo .text-slate-400 {
+            color: #475569 !important;
+        }
+
+        .atom-spinner {
+            animation: spin 12s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased transition-colors duration-300 selection:bg-amber-500 selection:text-slate-950" id="appBody">
+
+    <!-- NAVIGATION HEADER -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3 transition-colors">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <!-- Logo & Back to Main Catalog -->
+            <div class="flex items-center justify-between w-full md:w-auto gap-4">
+                <a href="../" class="flex items-center gap-3 group" title="Vissza a FizikaLab kezdőlapjára">
+                    <div class="relative w-10 h-10 flex items-center justify-center bg-gradient-to-tr from-amber-500 to-rose-600 rounded-xl shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-car-side text-xl text-white"></i>
+                    </div>
+                    <div>
+                        <span class="text-2xl font-bold tracking-tight bg-gradient-to-r from-amber-400 via-orange-300 to-rose-400 bg-clip-text text-transparent">FizikaLab</span>
+                        <span class="block text-[10px] uppercase font-semibold text-amber-400/80 tracking-widest -mt-1">Kanyarodás & Kisodródás</span>
+                    </div>
+                </a>
+
+                <a href="../" class="px-3.5 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700 text-xs font-semibold text-slate-200 flex items-center gap-2 transition-all hover:border-amber-500/50">
+                    <i class="fa-solid fa-arrow-left text-amber-400"></i>
+                    <span>Összes szimuláció</span>
+                </a>
+            </div>
+
+            <!-- Title & Badges -->
+            <div class="hidden lg:flex items-center gap-3">
+                <span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                    Mechanika
+                </span>
+                <span class="text-xs text-slate-400 font-mono flex items-center gap-1">
+                    <i class="fa-solid fa-graduation-cap text-indigo-400"></i> Középiskola
+                </span>
+                <span class="text-xs text-emerald-400 font-mono flex items-center gap-1">
+                    <i class="fa-solid fa-link text-xs"></i> wbfizika.hu/autokanyar
+                </span>
+            </div>
+
+            <!-- Desktop Tools & Controls -->
+            <div class="flex items-center gap-2">
+                <button onclick="copySimulationLink()" id="copyLinkBtn" class="px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-2 transition-all hover:border-amber-500/50">
+                    <i class="fa-solid fa-share-nodes text-amber-400"></i>
+                    <span id="copyLinkText">Megosztás</span>
+                </button>
+                <button onclick="toggleDemoMode()" id="demoModeBtn" class="px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/80 border border-slate-700 text-xs font-medium text-slate-200 flex items-center gap-2 transition-all hover:border-amber-500/50">
+                    <i class="fa-solid fa-chalkboard-user text-indigo-400"></i>
+                    <span id="demoBtnText">Demó mód</span>
+                </button>
+                <button onclick="toggleFullscreen()" title="Teljes képernyő" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all border border-slate-800">
+                    <i class="fa-solid fa-expand"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN INTERACTIVE CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
+
+        <!-- SIMULATION WORKSPACE (CANVAS & CONTROLS) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left/Center Canvas Area -->
+            <div class="lg:col-span-8 flex flex-col gap-4">
+                
+                <!-- Main Canvas Viewport -->
+                <div class="relative w-full h-[380px] sm:h-[460px] bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-inner flex items-center justify-center">
+                    
+                    <!-- Simulation Canvas -->
+                    <canvas id="simCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+                    <!-- Top Playback Controls Bar -->
+                    <div class="absolute top-3 left-3 flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 p-1.5 rounded-xl backdrop-blur-md z-10 shadow-lg">
+                        <button id="playBtn" onclick="toggleSimPlay()" title="Szünet / Indítás" class="p-2 w-9 h-9 rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 font-bold flex items-center justify-center transition-all">
+                            <i class="fa-solid fa-pause"></i>
+                        </button>
+                        <button onclick="stepSim()" title="Egy időlépés (Léptetés)" class="p-2 w-9 h-9 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center transition-all">
+                            <i class="fa-solid fa-step-forward"></i>
+                        </button>
+                        <button onclick="resetCarCurveTrack()" title="Újraindítás / Pályára állítás" class="p-2 w-9 h-9 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 flex items-center justify-center transition-all">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                        <div class="h-5 w-px bg-slate-800 mx-1"></div>
+                        <select id="speedSelect" onchange="changeSimSpeed(this.value)" class="bg-slate-800 text-slate-200 text-xs rounded-lg px-2 py-1.5 border border-slate-700 outline-none">
+                            <option value="0.25">0.25x (Lassított)</option>
+                            <option value="0.5">0.5x</option>
+                            <option value="1.0" selected>1.0x (Normál)</option>
+                            <option value="2.0">2.0x (Gyorsított)</option>
+                        </select>
+                    </div>
+
+                    <!-- Bottom Telemetry Banner -->
+                    <div id="modalTelemetry" class="absolute bottom-3 left-3 right-3 bg-slate-950/85 border border-slate-800/80 rounded-xl p-2.5 text-xs font-mono text-slate-300 flex items-center justify-between overflow-x-auto gap-4 backdrop-blur-md z-10 shadow-lg">
+                        <!-- Populated dynamically by loop -->
+                    </div>
+                </div>
+
+                <!-- Live Graph Canvas: Friction Demand vs Static Limit -->
+                <div class="bg-slate-950/80 border border-slate-800 rounded-2xl p-3 flex flex-col gap-2">
+                    <div class="flex items-center justify-between text-xs font-mono text-slate-400">
+                        <span class="flex items-center gap-1.5 text-slate-300 font-semibold">
+                            <i class="fa-solid fa-chart-line text-amber-400"></i> Súrlódási erőigény vs. súrlódási határ ($F_{total}$ vs. $F_{max}$)
+                        </span>
+                        <span id="graphLabel" class="text-slate-400">Kamm-kör igényelt súrlódási erő az idő függvényében</span>
+                    </div>
+                    <div class="w-full h-24 bg-slate-900/90 rounded-xl overflow-hidden border border-slate-800">
+                        <canvas id="graphCanvas" class="w-full h-full block"></canvas>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Parameter & Controls Panel -->
+            <div class="lg:col-span-4 flex flex-col gap-4 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                <h4 class="text-sm font-bold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-2 flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-amber-400"></i> Paraméterek & Pedálok
+                    </span>
+                    <span class="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                        Interaktív
+                    </span>
+                </h4>
+
+                <!-- Sliders and Inputs Container -->
+                <div id="modalControls" class="space-y-4 flex-1 overflow-y-auto pr-1">
+                    <!-- Populated dynamically via JS -->
+                </div>
+
+                <!-- Educational Physical Theory Card -->
+                <div class="p-4 rounded-xl bg-slate-900/90 border border-slate-800/80 text-xs space-y-2.5">
+                    <div class="font-semibold text-amber-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-lightbulb"></i> Fizikai Háttér: Kanyarodás Határon
+                    </div>
+                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                        A kanyarodáshoz szükséges centripetális erőt a gumiabroncsok és az útfelület közötti <strong>tapadási súrlódási erő</strong> biztosítja:
+                    </p>
+                    <div class="bg-slate-950/80 p-2 rounded-lg font-mono text-center text-cyan-400 text-xs border border-slate-800">
+                        F_cp = m · v² / R &le; F_s,max = μ · m · g
+                    </div>
+                    <p class="text-slate-300 leading-relaxed text-[11px]">
+                        A maximális biztonságos kanyarsebesség, aminél még épp nem sodródik ki az autó:
+                    </p>
+                    <div class="bg-slate-950/80 p-2 rounded-lg font-mono text-center text-emerald-400 text-xs border border-slate-800">
+                        v_max = &radic;(μ · g · R)
+                    </div>
+                    <p class="text-slate-400 leading-relaxed text-[10px] border-t border-slate-800/80 pt-2">
+                        <strong class="text-rose-400">Kamm-kör (Súrlódási kör):</strong> Gázadáskor vagy fékezéskor a hosszirányú erő és az oldalirányú kanyarodási erő együtt terheli a gumikat. Ha az eredő meghaladja a tapadási súrlódás határát ($F_{s,max}$), az autó megcsúszik; ekkor a kisebb csúszási súrlódás ($F_{k,max}$) hat rá, ezért kisodródhat.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-800/80 mt-12 bg-slate-950 py-8 text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">
+                    <i class="fa-solid fa-car-side"></i>
+                </div>
+                <span>FizikaLab &copy; 2026 — Interaktív Fizikai Kísérleti Platform</span>
+            </div>
+            <div class="flex items-center gap-4 text-slate-400">
+                <a href="../" class="hover:text-amber-400 transition-colors">Főoldal & Katalógus</a>
+                <a href="javascript:copySimulationLink()" class="hover:text-amber-400 transition-colors">Dedikált link megosztása</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT APPLICATION CODE -->
+    <script>
+        const initR = 40.0;
+        const initMu = 0.80;
+        const initM = 1300;
+        const vCrit = Math.sqrt(initMu * 9.81 * initR);
+
+        let simParams = {
+            R: initR,
+            mu: initMu,
+            m: initM,
+            v: vCrit * 0.94,
+            angle: 0,
+            rCurrent: initR,
+            vr: 0,
+            throttle: false,
+            brake: false,
+            isDrifting: false,
+            heading: Math.PI,
+            showVectors: true,
+            showKamm: true,
+            skidmarks: [],
+            smoke: []
+        };
+
+        let simAnimFrame = null;
+        let simIsRunning = true;
+        let simTime = 0;
+        let simSpeed = 1.0;
+        let isDemoMode = false;
+        let graphHistory = [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderControls();
+            resizeCanvas();
+
+            window.addEventListener('resize', resizeCanvas);
+
+            // Driving keyboard listeners
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                    setCarGas(true);
+                    e.preventDefault();
+                } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' || e.key === ' ') {
+                    setCarBrake(true);
+                    e.preventDefault();
+                } else if (e.key === 'r' || e.key === 'R') {
+                    resetCarCurveTrack();
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                    setCarGas(false);
+                } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S' || e.key === ' ') {
+                    setCarBrake(false);
+                }
+            });
+
+            startSimLoop();
+        });
+
+        function resizeCanvas() {
+            const canvas = document.getElementById('simCanvas');
+            const graphCanvas = document.getElementById('graphCanvas');
+            if (!canvas) return;
+
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+
+            if (graphCanvas) {
+                graphCanvas.width = graphCanvas.parentElement.clientWidth;
+                graphCanvas.height = graphCanvas.parentElement.clientHeight;
+            }
+        }
+
+        function toggleSimPlay() {
+            simIsRunning = !simIsRunning;
+            document.getElementById('playBtn').innerHTML = simIsRunning ? 
+                '<i class="fa-solid fa-pause"></i>' : '<i class="fa-solid fa-play"></i>';
+        }
+
+        function stepSim() {
+            simIsRunning = false;
+            document.getElementById('playBtn').innerHTML = '<i class="fa-solid fa-play"></i>';
+            renderStep(0.016 * simSpeed);
+        }
+
+        function changeSimSpeed(val) {
+            simSpeed = parseFloat(val);
+        }
+
+        function toggleDemoMode() {
+            isDemoMode = !isDemoMode;
+            document.getElementById('appBody').classList.toggle('light-mode-demo', isDemoMode);
+            const demoBtnText = document.getElementById('demoBtnText');
+            if (demoBtnText) demoBtnText.textContent = isDemoMode ? 'Sötét mód' : 'Demó mód';
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => alert(`Hiba: ${err.message}`));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function copySimulationLink() {
+            let url = window.location.href;
+            const txt = document.getElementById('copyLinkText');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    if (txt) {
+                        const old = txt.textContent;
+                        txt.textContent = 'Másolva!';
+                        setTimeout(() => { txt.textContent = old; }, 2000);
+                    }
+                }).catch(() => {
+                    prompt('Dedikált link a szimulációhoz:', url);
+                });
+            } else {
+                prompt('Dedikált link a szimulációhoz:', url);
+            }
+        }
+
+        function setCarGas(active) {
+            simParams.throttle = active;
+        }
+
+        function setCarBrake(active) {
+            simParams.brake = active;
+        }
+
+        function pulseCarGas() {
+            setCarGas(true);
+            setTimeout(() => setCarGas(false), 220);
+        }
+
+        function pulseCarBrake() {
+            setCarBrake(true);
+            setTimeout(() => setCarBrake(false), 220);
+        }
+
+        function resetCarCurveTrack() {
+            const vCrit = Math.sqrt(simParams.mu * 9.81 * simParams.R);
+            simParams.rCurrent = simParams.R;
+            simParams.vr = 0;
+            simParams.v = vCrit * 0.94;
+            simParams.angle = 0;
+            simParams.heading = Math.PI;
+            simParams.isDrifting = false;
+            simParams.throttle = false;
+            simParams.brake = false;
+            simParams.skidmarks = [];
+            simParams.smoke = [];
+            graphHistory = [];
+        }
+
+        function applyCarCurvePreset(R, mu) {
+            simParams.R = R;
+            simParams.mu = mu;
+            resetCarCurveTrack();
+            const slR = document.getElementById('sliderCarR');
+            const slMu = document.getElementById('sliderCarMu');
+            if (slR) { slR.value = R; document.getElementById('valCarR').textContent = R + ' m'; }
+            if (slMu) { slMu.value = mu; document.getElementById('valCarMu').textContent = mu.toFixed(2); }
+        }
+
+        function renderControls() {
+            const container = document.getElementById('modalControls');
+            if (!container) return;
+
+            container.innerHTML = `
+                <div class="p-3 rounded-2xl bg-slate-900 border border-slate-800 space-y-2.5">
+                    <span class="block text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-gamepad text-amber-400"></i> Vezetői Pedálok (Interaktív)
+                    </span>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="btnCarThrottle" 
+                                onmousedown="setCarGas(true)" onmouseup="setCarGas(false)" onmouseleave="setCarGas(false)"
+                                ontouchstart="setCarGas(true); event.preventDefault();" ontouchend="setCarGas(false)"
+                                onclick="pulseCarGas()"
+                                class="p-3.5 rounded-2xl bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white font-bold flex flex-col items-center justify-center gap-1 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all select-none">
+                            <i class="fa-solid fa-gauge-high text-xl"></i>
+                            <span class="text-xs uppercase tracking-wide">GÁZADÁS</span>
+                            <span class="text-[10px] text-emerald-200 font-mono">[W / ↑ billentyű]</span>
+                        </button>
+                        <button id="btnCarBrake" 
+                                onmousedown="setCarBrake(true)" onmouseup="setCarBrake(false)" onmouseleave="setCarBrake(false)"
+                                ontouchstart="setCarBrake(true); event.preventDefault();" ontouchend="setCarBrake(false)"
+                                onclick="pulseCarBrake()"
+                                class="p-3.5 rounded-2xl bg-gradient-to-b from-rose-500 to-rose-700 hover:from-rose-400 hover:to-rose-600 text-white font-bold flex flex-col items-center justify-center gap-1 shadow-lg shadow-rose-500/20 active:scale-95 transition-all select-none">
+                            <i class="fa-solid fa-circle-stop text-xl"></i>
+                            <span class="text-xs uppercase tracking-wide">FÉKEZÉS</span>
+                            <span class="text-[10px] text-rose-200 font-mono">[S / ↓ / Space]</span>
+                        </button>
+                    </div>
+                    <p class="text-[10px] text-slate-400 leading-tight">
+                        A <strong>Gáz</strong> vagy a <strong>Fék</strong> túllépheti a tapadási határt. A fék felengedésekor visszanyerhető az irányítás, ha a kanyarodási erőigény ismét a tapadási határ alá kerül.
+                    </p>
+                </div>
+
+                <div>
+                    <button onclick="resetCarCurveTrack()" class="w-full py-2 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-amber-400 text-xs font-semibold border border-slate-700 hover:border-amber-500/50 flex items-center justify-center gap-2 transition-all">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>Visszaállítás az ideális ívre (Tapadási határ 94%)</span>
+                    </button>
+                </div>
+
+                <div class="space-y-3 pt-1 border-t border-slate-800/80">
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Kanyar sugara ($R$)</span>
+                            <span class="font-mono text-cyan-400" id="valCarR">${simParams.R.toFixed(0)} m</span>
+                        </div>
+                        <input type="range" id="sliderCarR" min="25" max="70" step="1" value="${simParams.R}"
+                               oninput="simParams.R=parseFloat(this.value); if(!simParams.isDrifting){simParams.rCurrent=simParams.R;} document.getElementById('valCarR').textContent=this.value+' m'"
+                               class="w-full accent-cyan-500 bg-slate-800 rounded">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Tapadási együttható ($\mu$)</span>
+                            <span class="font-mono text-amber-400" id="valCarMu">${simParams.mu.toFixed(2)}</span>
+                        </div>
+                        <input type="range" id="sliderCarMu" min="0.10" max="1.00" step="0.05" value="${simParams.mu}"
+                               oninput="simParams.mu=parseFloat(this.value); document.getElementById('valCarMu').textContent=parseFloat(this.value).toFixed(2)"
+                               class="w-full accent-amber-500 bg-slate-800 rounded">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Autó tömege ($m$)</span>
+                            <span class="font-mono text-indigo-400" id="valCarM">${simParams.m} kg</span>
+                        </div>
+                        <input type="range" id="sliderCarM" min="800" max="2500" step="50" value="${simParams.m}"
+                               oninput="simParams.m=parseFloat(this.value); document.getElementById('valCarM').textContent=this.value+' kg'"
+                               class="w-full accent-indigo-500 bg-slate-800 rounded">
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-800/80">
+                    <span class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Útviszonyok gyorsválasztó</span>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="applyCarCurvePreset(simParams.R, 0.85)" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] text-cyan-400 font-medium transition-all text-center">
+                            ☀️ Száraz (0.85)
+                        </button>
+                        <button onclick="applyCarCurvePreset(simParams.R, 0.45)" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] text-amber-400 font-medium transition-all text-center">
+                            🌧️ Nedves (0.45)
+                        </button>
+                        <button onclick="applyCarCurvePreset(simParams.R, 0.15)" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-[11px] text-rose-400 font-medium transition-all text-center">
+                            ❄️ Jeges (0.15)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                    <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                        <input type="checkbox" ${simParams.showVectors ? 'checked' : ''} onchange="simParams.showVectors=this.checked" class="rounded accent-cyan-500 bg-slate-800">
+                        <span class="text-cyan-400 font-semibold">Erővektorok (v, F)</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-slate-300 cursor-pointer">
+                        <input type="checkbox" ${simParams.showKamm ? 'checked' : ''} onchange="simParams.showKamm=this.checked" class="rounded accent-emerald-500 bg-slate-800">
+                        <span class="text-emerald-400 font-semibold">Kamm-kör HUD</span>
+                    </label>
+                </div>
+            `;
+        }
+
+        function drawArrow(ctx, fromX, fromY, toX, toY, color, label, labelOffsetX = 0, labelOffsetY = -8) {
+            const dx = toX - fromX;
+            const dy = toY - fromY;
+            const len = Math.hypot(dx, dy);
+            if (len < 4) return;
+
+            const angle = Math.atan2(dy, dx);
+            const headLen = Math.min(12, len * 0.4);
+
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 2.5;
+
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(toX, toY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+
+            if (label) {
+                ctx.font = 'bold 11px JetBrains Mono, monospace';
+                ctx.fillStyle = color;
+                ctx.fillText(label, toX + labelOffsetX, toY + labelOffsetY);
+            }
+            ctx.restore();
+        }
+
+        function startSimLoop() {
+            if (simAnimFrame) cancelAnimationFrame(simAnimFrame);
+
+            function loop() {
+                if (simIsRunning) {
+                    renderStep(0.016 * simSpeed);
+                }
+                simAnimFrame = requestAnimationFrame(loop);
+            }
+            loop();
+        }
+
+        function renderStep(dt) {
+            const canvas = document.getElementById('simCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const graphCanvas = document.getElementById('graphCanvas');
+            const gCtx = graphCanvas ? graphCanvas.getContext('2d') : null;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            simTime += dt;
+
+            const midX = canvas.width / 2;
+            const midY = canvas.height / 2;
+            const maxRadiusPx = Math.min(canvas.width, canvas.height) * 0.40;
+            const scale = maxRadiusPx / 72;
+
+            const g = 9.81;
+            const rNominal = simParams.R;
+            const rNominalPx = rNominal * scale;
+            const laneWidthM = 14;
+            const laneWidthPx = laneWidthM * scale;
+
+            const fMaxStatic = simParams.mu * simParams.m * g;
+            const vCrit = Math.sqrt(simParams.mu * g * rNominal);
+
+            let aTangDemand = 0;
+            if (simParams.throttle) aTangDemand += 3.8;
+            if (simParams.brake) aTangDemand -= 6.5;
+
+            let fTangDemand = simParams.m * aTangDemand;
+            const fRadialDemand = simParams.m * (simParams.v * simParams.v) / Math.max(5, simParams.rCurrent);
+            const fTotalStaticDemand = Math.hypot(fRadialDemand, fTangDemand);
+
+            if (simParams.isDrifting && !simParams.brake && fTotalStaticDemand <= fMaxStatic) {
+                simParams.isDrifting = false;
+            } else if (!simParams.isDrifting && fTotalStaticDemand > fMaxStatic) {
+                simParams.isDrifting = true;
+            }
+
+            const muK = simParams.mu * 0.70;
+            const fKinetic = muK * simParams.m * g;
+            if (simParams.isDrifting) {
+                aTangDemand = Math.max(-muK * g, Math.min(muK * g, aTangDemand));
+                fTangDemand = simParams.m * aTangDemand;
+            }
+            const fTotalDemand = Math.hypot(fRadialDemand, fTangDemand);
+            const fMaxAvailable = simParams.isDrifting ? fKinetic : fMaxStatic;
+            const gripRatio = fTotalDemand / fMaxAvailable;
+
+            if (!simParams.isDrifting) {
+                simParams.v += aTangDemand * dt;
+                if (simParams.v < 0) simParams.v = 0;
+
+                simParams.rCurrent += (rNominal - simParams.rCurrent) * 3.0 * dt;
+                simParams.vr *= Math.exp(-3.0 * dt);
+
+                const omega = simParams.v / Math.max(5, simParams.rCurrent);
+                simParams.angle = (simParams.angle + omega * dt) % (Math.PI * 2);
+                const recoveryAngle = Math.min(0.55, simParams.vr / (simParams.v + 0.1));
+                simParams.heading = simParams.angle + Math.PI - recoveryAngle;
+            } else {
+                const fRadialAvailable = Math.sqrt(Math.max(0, fKinetic * fKinetic - fTangDemand * fTangDemand));
+                const netRadialAccel = (simParams.m * (simParams.v * simParams.v) / Math.max(5, simParams.rCurrent) - fRadialAvailable) / simParams.m;
+
+                simParams.vr += Math.max(0, netRadialAccel) * dt;
+                simParams.rCurrent += simParams.vr * dt;
+
+                simParams.v += aTangDemand * dt;
+                if (simParams.v < 0) simParams.v = 0;
+
+                const omega = simParams.v / Math.max(5, simParams.rCurrent);
+                simParams.angle = (simParams.angle + omega * dt) % (Math.PI * 2);
+
+                const driftAngle = Math.min(0.55, simParams.vr / (simParams.v + 0.1));
+                simParams.heading = simParams.angle + Math.PI - driftAngle;
+
+            }
+
+            const rActualPx = simParams.rCurrent * scale;
+            const carX = midX + rActualPx * Math.cos(simParams.angle);
+            const carY = midY + rActualPx * Math.sin(simParams.angle);
+
+            if (simParams.isDrifting || (simParams.brake && simParams.v > 5)) {
+                simParams.skidmarks.push({
+                    x: carX,
+                    y: carY,
+                    alpha: simParams.isDrifting ? 0.75 : 0.45,
+                    heading: simParams.heading
+                });
+                if (simParams.skidmarks.length > 250) simParams.skidmarks.shift();
+
+                if (Math.random() < 0.6) {
+                    simParams.smoke.push({
+                        x: carX - 12 * Math.sin(simParams.heading) + (Math.random() - 0.5) * 6,
+                        y: carY + 12 * Math.cos(simParams.heading) + (Math.random() - 0.5) * 6,
+                        radius: 3 + Math.random() * 3,
+                        alpha: 0.5,
+                        growth: 0.2
+                    });
+                }
+            }
+
+            // 1. Draw Field & Asphalt Track
+            ctx.save();
+            ctx.fillStyle = '#090d16';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const innerTrackR = Math.max(10, rNominalPx - laneWidthPx / 2);
+            const outerTrackR = rNominalPx + laneWidthPx / 2;
+
+            ctx.beginPath();
+            ctx.arc(midX, midY, outerTrackR, 0, Math.PI * 2);
+            ctx.arc(midX, midY, innerTrackR, 0, Math.PI * 2, true);
+            ctx.fillStyle = '#1e293b';
+            ctx.fill();
+
+            function drawKerb(radius, width) {
+                const segCount = 60;
+                for (let i = 0; i < segCount; i++) {
+                    const a1 = (i / segCount) * Math.PI * 2;
+                    const a2 = ((i + 1) / segCount) * Math.PI * 2;
+                    ctx.strokeStyle = (i % 2 === 0) ? '#ef4444' : '#f8fafc';
+                    ctx.lineWidth = width;
+                    ctx.beginPath();
+                    ctx.arc(midX, midY, radius, a1, a2);
+                    ctx.stroke();
+                }
+            }
+            drawKerb(innerTrackR, 3);
+            drawKerb(outerTrackR, 4);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([8, 8]);
+            ctx.beginPath();
+            ctx.arc(midX, midY, rNominalPx, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            // 2. Skidmarks
+            if (simParams.skidmarks.length > 1) {
+                ctx.save();
+                simParams.skidmarks.forEach(sm => {
+                    ctx.fillStyle = `rgba(15, 23, 42, ${sm.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(sm.x, sm.y, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    sm.alpha -= 0.0006;
+                });
+                simParams.skidmarks = simParams.skidmarks.filter(sm => sm.alpha > 0.05);
+                ctx.restore();
+            }
+
+            // 3. Smoke
+            if (simParams.smoke.length > 0) {
+                ctx.save();
+                simParams.smoke.forEach(p => {
+                    ctx.fillStyle = `rgba(203, 213, 225, ${p.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    p.radius += p.growth;
+                    p.alpha -= 0.015;
+                });
+                simParams.smoke = simParams.smoke.filter(p => p.alpha > 0.02);
+                ctx.restore();
+            }
+
+            // 4. Center Pole
+            ctx.save();
+            ctx.fillStyle = '#475569';
+            ctx.beginPath();
+            ctx.arc(midX, midY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.font = '9px JetBrains Mono, monospace';
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.fillText('R = ' + rNominal.toFixed(0) + 'm', midX, midY + 18);
+            ctx.restore();
+
+            // 5. Car
+            ctx.save();
+            ctx.translate(carX, carY);
+            ctx.rotate(simParams.heading);
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.beginPath();
+            ctx.roundRect(-10, -18, 20, 36, 4);
+            ctx.fill();
+
+            ctx.fillStyle = '#0f172a';
+            [-9, 6].forEach(wx => {
+                [-14, 8].forEach(wy => {
+                    ctx.save();
+                    ctx.translate(wx, wy);
+                    if (wy < 0) ctx.rotate(-0.12);
+                    ctx.beginPath();
+                    ctx.roundRect(-2, -5, 5, 10, 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+            });
+
+            const carGrad = ctx.createLinearGradient(-8, 0, 8, 0);
+            if (simParams.isDrifting) {
+                carGrad.addColorStop(0, '#f97316');
+                carGrad.addColorStop(0.5, '#ef4444');
+                carGrad.addColorStop(1, '#b91c1c');
+            } else {
+                carGrad.addColorStop(0, '#38bdf8');
+                carGrad.addColorStop(0.5, '#0284c7');
+                carGrad.addColorStop(1, '#0369a1');
+            }
+            ctx.fillStyle = carGrad;
+            ctx.beginPath();
+            ctx.roundRect(-8, -16, 16, 32, 5);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.roundRect(-6, -8, 12, 16, 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(56, 189, 248, 0.6)';
+            ctx.beginPath();
+            ctx.roundRect(-5, -7, 10, 4, 1);
+            ctx.fill();
+
+            ctx.fillStyle = '#fef08a';
+            ctx.fillRect(-7, -16, 3, 2);
+            ctx.fillRect(4, -16, 3, 2);
+
+            if (simParams.brake) {
+                ctx.shadowColor = '#ef4444';
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(-7, 14, 4, 3);
+                ctx.fillRect(3, 14, 4, 3);
+            } else {
+                ctx.fillStyle = '#991b1b';
+                ctx.fillRect(-7, 14, 3, 2);
+                ctx.fillRect(4, 14, 3, 2);
+            }
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-8, 15, 16, 2.5);
+            ctx.restore();
+
+            // 6. Force Vectors
+            if (simParams.showVectors) {
+                const vVisualScale = 1.4;
+                const vAngle = simParams.heading;
+                const vEndX = carX + simParams.v * vVisualScale * Math.sin(vAngle);
+                const vEndY = carY - simParams.v * vVisualScale * Math.cos(vAngle);
+                drawArrow(ctx, carX, carY, vEndX, vEndY, '#10b981', `${(simParams.v * 3.6).toFixed(0)} km/h`, 8, -6);
+
+                const fVisualLen = Math.min(rNominalPx * 0.8, (fRadialDemand / fMaxAvailable) * 50 + 15);
+                const fAngle = Math.atan2(midY - carY, midX - carX);
+                const fEndX = carX + fVisualLen * Math.cos(fAngle);
+                const fEndY = carY + fVisualLen * Math.sin(fAngle);
+                const fColor = simParams.isDrifting ? '#ef4444' : '#06b6d4';
+                drawArrow(ctx, carX, carY, fEndX, fEndY, fColor, `F_s = ${(fRadialDemand / 1000).toFixed(1)} kN`, 8, 14);
+            }
+
+            // 7. Kamm-Circle HUD
+            if (simParams.showKamm) {
+                const hudW = 190;
+                const hudH = 108;
+                const hudX = canvas.width - hudW - 14;
+                const hudY = 14;
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
+                ctx.strokeStyle = 'rgba(51, 65, 85, 0.9)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(hudX, hudY, hudW, hudH, 10);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.font = 'bold 10px JetBrains Mono, monospace';
+                ctx.fillStyle = '#cbd5e1';
+                ctx.textAlign = 'left';
+                ctx.fillText('KAMM-KÖR (G-G DIAGRAM)', hudX + 10, hudY + 16);
+
+                const radarCX = hudX + 42;
+                const radarCY = hudY + 62;
+                const radarR = 30;
+
+                ctx.strokeStyle = simParams.isDrifting ? '#ef4444' : 'rgba(6, 182, 212, 0.7)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.arc(radarCX, radarCY, radarR, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(radarCX - radarR - 4, radarCY);
+                ctx.lineTo(radarCX + radarR + 4, radarCY);
+                ctx.moveTo(radarCX, radarCY - radarR - 4);
+                ctx.lineTo(radarCX, radarCY + radarR + 4);
+                ctx.stroke();
+
+                const dotX = radarCX + Math.min(radarR * 1.35, (fRadialDemand / fMaxAvailable) * radarR);
+                const dotY = radarCY - Math.max(-radarR * 1.35, Math.min(radarR * 1.35, (fTangDemand / fMaxAvailable) * radarR));
+
+                ctx.fillStyle = simParams.isDrifting ? '#ef4444' : (gripRatio > 0.85 ? '#f59e0b' : '#10b981');
+                ctx.beginPath();
+                ctx.arc(dotX, dotY, 4.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+
+                const statX = hudX + 85;
+                ctx.font = '9px JetBrains Mono, monospace';
+                const pctGrip = Math.round(gripRatio * 100);
+                ctx.fillStyle = simParams.isDrifting ? '#ef4444' : (gripRatio > 0.85 ? '#f59e0b' : '#38bdf8');
+                ctx.fillText(simParams.isDrifting ? '⚠️ KISODRÓDÁS!' : `${pctGrip}% tapadás`, statX, hudY + 42);
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText(`${simParams.isDrifting ? 'F_k,max' : 'F_s,max'}: ${(fMaxAvailable/1000).toFixed(1)}kN`, statX, hudY + 58);
+                ctx.fillText(`F_tot:  ${(fTotalDemand/1000).toFixed(1)}kN`, statX, hudY + 74);
+                const latG = (fRadialDemand / (simParams.m * 9.81)).toFixed(2);
+                ctx.fillText(`Oldal: ${latG} G`, statX, hudY + 90);
+                ctx.restore();
+            }
+
+            // 8. Speedometer HUD
+            const spdW = 175;
+            const spdH = 68;
+            const spdX = 14;
+            const spdY = 56;
+            ctx.save();
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.9)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(spdX, spdY, spdW, spdH, 10);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = 'bold 16px JetBrains Mono, monospace';
+            const vDisplayKmh = (simParams.v * 3.6).toFixed(1);
+            const vCritDisplay = (vCrit * 3.6).toFixed(1);
+            ctx.fillStyle = simParams.isDrifting ? '#ef4444' : '#f8fafc';
+            ctx.fillText(`${vDisplayKmh} km/h`, spdX + 12, spdY + 26);
+
+            ctx.font = '10px JetBrains Mono, monospace';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText(`v_max (határ): ${vCritDisplay} km/h`, spdX + 12, spdY + 42);
+
+            if (simParams.throttle) {
+                ctx.fillStyle = '#10b981';
+                ctx.fillText('● GÁZADÁS (Gyorsulás)', spdX + 12, spdY + 58);
+            } else if (simParams.brake) {
+                ctx.fillStyle = '#ef4444';
+                ctx.fillText('● FÉKEZÉS (Lassulás)', spdX + 12, spdY + 58);
+            } else {
+                ctx.fillStyle = '#64748b';
+                ctx.fillText('○ GURULÁS (Motorfék)', spdX + 12, spdY + 58);
+            }
+            ctx.restore();
+
+            // 9. Drift Warning Banner
+            if (simParams.isDrifting) {
+                ctx.save();
+                const bannerW = Math.min(canvas.width - 40, 480);
+                const bannerX = (canvas.width - bannerW) / 2;
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(bannerX, 14, bannerW, 36, 10);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.font = 'bold 11px JetBrains Mono, monospace';
+                ctx.fillStyle = '#f87171';
+                ctx.textAlign = 'center';
+                const frictionLimit = simParams.isDrifting ? 'F_k,max' : 'F_s,max';
+                ctx.fillText(`⚠️ KISODRÓDÁS! (F_total > ${frictionLimit}) — ENGEDD FEL A FÉKET AZ IRÁNYÍTÁSÉRT!`, canvas.width / 2, 36);
+                ctx.restore();
+            }
+
+            // 10. Update Telemetry ribbon
+            const telemetry = document.getElementById('modalTelemetry');
+            const vKmh = (simParams.v * 3.6).toFixed(1);
+            const vCritKmh = (vCrit * 3.6).toFixed(1);
+            const latG = (fRadialDemand / (simParams.m * 9.81)).toFixed(2);
+            const pctGrip = Math.round(gripRatio * 100);
+
+            let statusBadge = '';
+            if (simParams.isDrifting) {
+                statusBadge = '<span class="text-rose-400 font-bold animate-pulse">⚠️ KISODRÓDÁS</span>';
+            } else if (gripRatio > 0.90) {
+                statusBadge = `<span class="text-amber-400 font-semibold">Tapadási határon (${pctGrip}%)</span>`;
+            } else {
+                statusBadge = `<span class="text-emerald-400 font-semibold">Biztonságos (${pctGrip}%)</span>`;
+            }
+
+            telemetry.innerHTML = `
+                <span>Sebesség (v): <strong class="${simParams.v > vCrit ? 'text-rose-400' : 'text-cyan-400'}">${vKmh} km/h</strong></span>
+                <span>v_max (határ): <strong class="text-indigo-400">${vCritKmh} km/h</strong></span>
+                <span>F_total: <strong class="${gripRatio > 1 ? 'text-rose-400' : 'text-emerald-400'}">${(fTotalDemand/1000).toFixed(1)} kN</strong></span>
+                <span>${simParams.isDrifting ? 'F_k,max' : 'F_s,max'}: <strong class="text-amber-400">${(fMaxAvailable/1000).toFixed(1)} kN</strong></span>
+                <span>Oldalerő: <strong class="text-slate-300">${latG} G</strong></span>
+                <span>Állapot: ${statusBadge}</span>
+            `;
+
+            // 11. Live Graph update: F_total vs current friction limit
+            graphHistory.push({ fTotal: fTotalDemand, fMax: fMaxAvailable });
+            if (graphHistory.length > 150) graphHistory.shift();
+
+            drawCarFrictionGraph(gCtx, graphCanvas, fMaxAvailable, simParams.isDrifting);
+        }
+
+        function drawCarFrictionGraph(ctx, canvas, fMaxAvailable, isDrifting) {
+            if (!ctx || !canvas) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const padL = 36;
+            const padR = 14;
+            const padT = 10;
+            const padB = 16;
+            const plotW = canvas.width - padL - padR;
+            const plotH = canvas.height - padT - padB;
+
+            const yMax = Math.max(fMaxAvailable * 1.5, 18000);
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padL, padT + plotH);
+            ctx.lineTo(padL + plotW, padT + plotH);
+            ctx.stroke();
+
+            const limitY = padT + plotH * (1 - fMaxAvailable / yMax);
+            ctx.save();
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(padL, limitY);
+            ctx.lineTo(padL + plotW, limitY);
+            ctx.stroke();
+
+            ctx.font = '9px JetBrains Mono, monospace';
+            ctx.fillStyle = '#ef4444';
+            ctx.textAlign = 'right';
+            const limitLabel = isDrifting ? 'F_k,max' : 'F_s,max';
+            ctx.fillText(`${limitLabel}: ${(fMaxAvailable/1000).toFixed(1)}kN`, padL - 4, limitY + 3);
+            ctx.restore();
+
+            if (graphHistory.length < 2) return;
+
+            ctx.save();
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+
+            const dx = plotW / 150;
+            graphHistory.forEach((pt, i) => {
+                const val = (typeof pt === 'object' && pt.fTotal !== undefined) ? pt.fTotal : pt;
+                const normY = Math.min(1.0, val / yMax);
+                const py = padT + plotH * (1 - normY);
+                const px = padL + i * dx;
+
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            });
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.font = '9px JetBrains Mono, monospace';
+            ctx.fillStyle = '#f59e0b';
+            ctx.textAlign = 'left';
+            ctx.fillText('— F_total (igényelt súrlódás)', padL + 8, padT + 8);
+            ctx.fillStyle = '#ef4444';
+            ctx.fillText(`--- ${limitLabel} (súrlódási határ)`, padL + 160, padT + 8);
+        }
+    </script>
+</body>
+</html>
