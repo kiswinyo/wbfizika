@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/autokanyar/index.html", "destination": "/autokanyar/", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/centripetalis", "destination": "/centripetalis/index.html" },
     { "source": "/centripetalis/", "destination": "/centripetalis/index.html" },

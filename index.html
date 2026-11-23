@@ -953,7 +953,9 @@
            ========================================================================== */
         function openModal(simId) {
             if (simId === 'car_curve') {
-                window.location.href = 'autokanyar/index.html';
+                window.location.href = window.location.protocol === 'file:'
+                    ? 'autokanyar/index.html'
+                    : 'autokanyar/';
                 return;
             }
 

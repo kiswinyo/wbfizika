@@ -278,6 +278,11 @@
         let graphHistory = [];
 
         window.addEventListener('DOMContentLoaded', () => {
+            const canonicalPath = window.location.pathname.replace(/index\.html$/i, '');
+            if (canonicalPath !== window.location.pathname) {
+                window.history.replaceState(window.history.state, '', canonicalPath + window.location.search + window.location.hash);
+            }
+
             renderControls();
             resizeCanvas();
 
@@ -592,9 +597,7 @@
             const fRadialDemand = simParams.m * (simParams.v * simParams.v) / Math.max(5, simParams.rCurrent);
             const fTotalStaticDemand = Math.hypot(fRadialDemand, fTangDemand);
 
-            if (simParams.isDrifting && !simParams.brake && fTotalStaticDemand <= fMaxStatic) {
-                simParams.isDrifting = false;
-            } else if (!simParams.isDrifting && fTotalStaticDemand > fMaxStatic) {
+            if (!simParams.isDrifting && fTotalStaticDemand > fMaxStatic) {
                 simParams.isDrifting = true;
             }
 
@@ -604,6 +607,11 @@
                 aTangDemand = Math.max(-muK * g, Math.min(muK * g, aTangDemand));
                 fTangDemand = simParams.m * aTangDemand;
             }
+            if (simParams.isDrifting && !simParams.throttle && !simParams.brake &&
+                fRadialDemand <= fKinetic && simParams.vr <= 0.1) {
+                simParams.isDrifting = false;
+                simParams.vr = 0;
+            }
             const fTotalDemand = Math.hypot(fRadialDemand, fTangDemand);
             const fMaxAvailable = simParams.isDrifting ? fKinetic : fMaxStatic;
             const gripRatio = fTotalDemand / fMaxAvailable;
@@ -612,18 +620,14 @@
                 simParams.v += aTangDemand * dt;
                 if (simParams.v < 0) simParams.v = 0;
 
-                simParams.rCurrent += (rNominal - simParams.rCurrent) * 3.0 * dt;
-                simParams.vr *= Math.exp(-3.0 * dt);
-
                 const omega = simParams.v / Math.max(5, simParams.rCurrent);
                 simParams.angle = (simParams.angle + omega * dt) % (Math.PI * 2);
-                const recoveryAngle = Math.min(0.55, simParams.vr / (simParams.v + 0.1));
-                simParams.heading = simParams.angle + Math.PI - recoveryAngle;
+                simParams.heading = simParams.angle + Math.PI;
             } else {
                 const fRadialAvailable = Math.sqrt(Math.max(0, fKinetic * fKinetic - fTangDemand * fTangDemand));
                 const netRadialAccel = (simParams.m * (simParams.v * simParams.v) / Math.max(5, simParams.rCurrent) - fRadialAvailable) / simParams.m;
 
-                simParams.vr += Math.max(0, netRadialAccel) * dt;
+                simParams.vr = Math.max(0, simParams.vr + netRadialAccel * dt);
                 simParams.rCurrent += simParams.vr * dt;
 
                 simParams.v += aTangDemand * dt;
